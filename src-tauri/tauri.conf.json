@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "controlaggsabot",
-        "width": 800,
-        "height": 600
+        "title": "controlAGGSABOT",
+        "width": 1200,
+        "height": 800,
+        "resizable": false,
+        "center": true,
+        "fullscreen": false
       }
     ],
     "security": {
