@@ -4,7 +4,7 @@ import ControlModos from "./components/controlModos/controlModos";
 import { ConexionSerial } from "./components/conexionSerial/conexionSerial";
 import Header from "./components/Header";
 import Monitor from "./components/monitor/monitor";
-import { monitorMock } from "./components/monitor/monitor_Mock";
+import { useMonitorMock } from "./components/monitor/monitor_Mock";
 import "./styles/globals.css";
 
 function App() {
@@ -20,9 +20,10 @@ function App() {
           <main className="flex-grow p-4">
             <div className="flex">
               {/* Contenedor monitor con ancho fijo */}
-           <div className="w-130 shadow-xl rounded-lg bg-white p-4">
-            <Monitor juntas={monitorMock.juntas} />
-          </div>
+              <div className="w-130 shadow-xl rounded-lg bg-white p-4">
+                <MonitorWrapper/>
+              </div>
+
               {/* Separación horizontal */}
               <div className="w-15" />
 
@@ -36,8 +37,12 @@ function App() {
         </div>
       </ControlModosProvider>
     </ConexionSerialProvider>
-    
   );
+  
+  function MonitorWrapper() {
+  const monitorMock = useMonitorMock();
+  return <Monitor juntas={monitorMock.juntas} />;
+}
 }
 
 export default App;

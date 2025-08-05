@@ -1,10 +1,49 @@
-export const monitorMock = {
-  juntas: [
-    { nombre: "Cintura", grados: 45, potenciometro: 0.32 },
-    { nombre: "Hombro", grados: 90, potenciometro: 0.78 },
-    { nombre: "Codo", grados: 120, potenciometro: 0.65 },
-    { nombre: "Muñeca", grados: 75, potenciometro: 0.43 },
-    { nombre: "Pinza", grados: 10, potenciometro: 0.12 },
-  ],
-seleccionado: 0,
+// monitor_Mock.ts
+import { useEffect, useState } from "react";
+import { useConexionSerial } from "../conexionSerial/conexionSerial_Context";
+
+interface Junta {
+  nombre: string;
+  grados: string;
+  potenciometro: string;
+}
+
+const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
+
+const generarJuntasAleatorias = (): Junta[] => {
+  return nombres.map((nombre) => ({
+    nombre,
+    grados: String(Math.floor(Math.random() * 181)) + "°",
+    potenciometro: String(Math.random().toFixed(2)),
+  }));
+};
+
+const generarJuntasVacias = (): Junta[] => {
+  return nombres.map((nombre) => ({
+    nombre,
+    grados: "-",
+    potenciometro: "-",
+  }));
+};
+
+export const useMonitorMock = () => {
+  const { state } = useConexionSerial();
+  const [juntas, setJuntas] = useState<Junta[]>(
+    state.conectado ? generarJuntasAleatorias() : generarJuntasVacias()
+  );
+
+  useEffect(() => {
+    if (!state.conectado) {
+      setJuntas(generarJuntasVacias());
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setJuntas(generarJuntasAleatorias());
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [state.conectado]);
+
+  return { juntas, seleccionado: 0 };
 };

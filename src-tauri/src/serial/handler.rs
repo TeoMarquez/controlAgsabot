@@ -76,7 +76,7 @@ impl SerialHandler {
                     port = None;
                 }
             } else if port.is_none() {
-                let nombre_puerto = "COM7";
+                let nombre_puerto = "COM6";
 
                 match serialport::new(nombre_puerto, 9600)
                     .timeout(Duration::from_millis(500))

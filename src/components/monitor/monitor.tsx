@@ -9,8 +9,8 @@ import pinzaImg from "../../assets/imagenes/partes_brazo/pinza.webp";
 
 interface Junta {
   nombre: string;
-  grados: number;
-  potenciometro: number;
+  grados: string;
+  potenciometro: string;
 }
 
 interface MonitorProps {
@@ -48,10 +48,10 @@ const Monitor: React.FC<MonitorProps> = ({ juntas }) => {
             className="text-center text-sm text-gray-700 border border-gray-300 rounded p-2 bg-gray-50 shadow-sm"
           >
             <div>
-              <strong>Grados:</strong> {junta.grados}°
+              <strong>Grados:</strong> {junta.grados}
             </div>
             <div>
-              <strong>Pot:</strong> {junta.potenciometro.toFixed(2)}
+              <strong>Pot:</strong>{junta.potenciometro}
             </div>
           </div>
         ))}
