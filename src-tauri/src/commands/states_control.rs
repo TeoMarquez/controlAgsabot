@@ -8,6 +8,7 @@ pub struct AppState {
     pub puerto_liberado: Mutex<bool>,
     pub lista_texto: Mutex<String>,
     pub registro: Mutex<Registro>,  
+    pub conectar_serial: Mutex<bool>, // <-- nueva flag    
 }
 
 #[command]
@@ -51,4 +52,11 @@ pub fn get_estado(state: tauri::State<Arc<AppState>>) -> (String, bool, String) 
 pub fn obtener_datos_registro(state: tauri::State<Arc<AppState>>) -> (String, String) {
     let registro = state.registro.lock().unwrap();
     (registro.nombre.clone(), registro.timestamp.clone())
+}
+
+#[tauri::command]
+pub fn set_conectar_serial(estado: tauri::State<Arc<AppState>>, valor: bool) {
+    let mut lock = estado.conectar_serial.lock().unwrap();
+    *lock = valor;
+    println!("Flag conectar_serial = {}", valor);
 }

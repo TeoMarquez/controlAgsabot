@@ -47,14 +47,15 @@ const Monitor: React.FC<MonitorProps> = ({ juntas }) => {
             key={junta.nombre + "-data"}
             className="text-center text-sm text-gray-700 border border-gray-300 rounded p-2 bg-gray-50 shadow-sm"
           >
-            <div>
+            <div style={{ whiteSpace: "pre-line" }}>
               <strong>Grados:</strong> {junta.grados}
             </div>
-            <div>
-              <strong>Pot:</strong>{junta.potenciometro}
+            <div style={{ whiteSpace: "pre-line" }}>
+              <strong>Pot:</strong> {junta.potenciometro}
             </div>
           </div>
         ))}
+
       </div>
     </div>
   );

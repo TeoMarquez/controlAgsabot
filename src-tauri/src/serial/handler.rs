@@ -59,7 +59,7 @@ impl SerialHandler {
 
     fn serial_worker_loop(app_state: Arc<AppState>, write_rx: Receiver<String>) {
         let mut port: Option<Box<dyn SerialPort>> = None;
-        let mut modo_anterior = String::new();
+        let mut modo_anterior: String = String::new();
         let mut lista_texto_anterior = String::new();
 
         let mut buffer: Vec<u8> = vec![0; 1024];
@@ -69,7 +69,19 @@ impl SerialHandler {
             let modo = app_state.modo.lock().unwrap().clone();
             let puerto_liberado = *app_state.puerto_liberado.lock().unwrap();
             let lista_texto = app_state.lista_texto.lock().unwrap().clone();
+            let conectar_serial = *app_state.conectar_serial.lock().unwrap();  // NUEVO: lee flag conectar_serial
 
+            if !conectar_serial {
+            // Si conectar_serial es false, cerramos puerto si está abierto y dormimos
+            if port.is_some() {
+                println!("Conexión serial desactivada. Cerrando puerto.");
+                port = None;
+            }
+
+            thread::sleep(Duration::from_millis(500));
+            continue;
+            
+            }
             if puerto_liberado {
                 if port.is_some() {
                     println!("Puerto liberado, cerrando conexión serial.");

@@ -13,16 +13,16 @@ const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 const generarJuntasAleatorias = (): Junta[] => {
   return nombres.map((nombre) => ({
     nombre,
-    grados: String(Math.floor(Math.random() * 181)) + "°",
-    potenciometro: String(Math.random().toFixed(2)),
+    grados: "\n" + String(Math.floor(Math.random() * 181)) + "°",
+    potenciometro: "\n" + String(Math.random().toFixed(2)),
   }));
 };
 
 const generarJuntasVacias = (): Junta[] => {
   return nombres.map((nombre) => ({
     nombre,
-    grados: "-",
-    potenciometro: "-",
+    grados: "\n-",
+    potenciometro: "\n-",
   }));
 };
 

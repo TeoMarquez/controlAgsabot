@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { ConexionSerialProvider } from "./components/conexionSerial/conexionSerial_Context";
 import { ControlModosProvider } from "./components/controlModos/controlModos_Context";
 import ControlModos from "./components/controlModos/controlModos";
@@ -6,10 +8,19 @@ import Header from "./components/Header";
 import Monitor from "./components/monitor/monitor";
 import { useMonitorMock } from "./components/monitor/monitor_Mock";
 import "./styles/globals.css";
+import {GestorTrayectorias} from "./components/gestorTrayectorias/gestorTrayectorias"
 
 function App() {
+  const [conectado, setConectado] = useState(false);
+
   const handleTutorialClick = () => {
     alert("Tutorial activado (próximamente)");
+  };
+
+  const toggleConexion = async () => {
+    const nuevoValor = !conectado;
+    await invoke("set_conectar_serial", { valor: nuevoValor });
+    setConectado(nuevoValor);
   };
 
   return (
@@ -18,31 +29,47 @@ function App() {
         <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
           <Header onTutorialClick={handleTutorialClick} />
           <main className="flex-grow p-4">
-            <div className="flex">
-              {/* Contenedor monitor con ancho fijo */}
+            {/* Primera fila: monitor + conexión + control */}
+            <div className="flex mb-6">
+              {/* Contenedor monitor */}
               <div className="w-130 shadow-xl rounded-lg bg-white p-4">
-                <MonitorWrapper/>
+                <MonitorWrapper />
               </div>
 
-              {/* Separación horizontal */}
+              {/* Separación */}
               <div className="w-15" />
 
-              {/* Contenedor controles con flex-grow para ocupar espacio restante */}
+              {/* Controles */}
               <div className="flex-grow max-w-md flex flex-col space-y-4">
                 <ConexionSerial />
                 <ControlModos />
+
+                {/* Botón para cambiar el flag en Rust */}
+                <button
+                  onClick={toggleConexion}
+                  className={`px-4 py-2 rounded text-white transition ${
+                    conectado ? "bg-green-500" : "bg-red-500"
+                  }`}
+                >
+                  {conectado ? "Conectado" : "Desconectado"}
+                </button>
               </div>
+            </div>
+
+            {/* Aquí abajo, todo el ancho, el Gestor de Trayectorias */}
+            <div className="shadow-xl rounded-lg bg-white p-4">
+              <GestorTrayectorias />
             </div>
           </main>
         </div>
       </ControlModosProvider>
     </ConexionSerialProvider>
   );
-  
+
   function MonitorWrapper() {
-  const monitorMock = useMonitorMock();
-  return <Monitor juntas={monitorMock.juntas} />;
-}
+    const monitorMock = useMonitorMock();
+    return <Monitor juntas={monitorMock.juntas} />;
+  }
 }
 
 export default App;

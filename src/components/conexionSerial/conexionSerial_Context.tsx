@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer, ReactNode } from "react";
 // Defino el estado específico para conexión serial
 type EstadoConexionSerial = {
   puerto: string;
-  baudrate: string; // lo mantenemos string para coincidir con select value
+  baudrate: string;
   conectado: boolean;
 };
 
