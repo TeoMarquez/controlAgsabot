@@ -14,7 +14,7 @@ use state::registro::Registro;
 use commands::states_control::{obtener_datos_registro, set_modo, set_puerto_liberado, set_lista_texto, get_estado, set_conectar_serial, AppState};
 
 // Importa el handler nuevo de tu módulo filesControl
-use commands::filesControl::writeFile::save_trajectory;
+use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 
 fn main() {
     // Estado para registro de datos recibidos
@@ -43,6 +43,7 @@ fn main() {
             obtener_datos_registro,
             set_conectar_serial,
             save_trajectory, // <-- Agregá tu comando aquí
+            load_trajectory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

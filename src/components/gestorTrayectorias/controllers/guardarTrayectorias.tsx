@@ -1,32 +1,37 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import { trayectoriaMock } from "../gestorTrayectorias_Mock";
 
-export async function guardarTrayectoria() {
+export async function guardarTrayectoria(trayectoria: Trayectoria): Promise<boolean> {
   try {
-    // Mostrar diálogo para seleccionar dónde guardar
+    // Determinar defaultPath dinámicamente
+    const defaultFileName =
+      trayectoria.nombre && trayectoria.nombre.trim() !== ""
+        ? `${trayectoria.nombre.trim()}.json`
+        : undefined;
+
     const filePath = await save({
-      defaultPath: "trayectoria.json",
+      // solo incluir defaultPath si hay nombre válido
+      ...(defaultFileName ? { defaultPath: defaultFileName } : {}),
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
 
     if (!filePath) {
       alert("No se seleccionó archivo.");
-      return;
+      return false; // usuario canceló
     }
 
-    // Serializar el mock a JSON
-    const contenido = JSON.stringify(trayectoriaMock, null, 2);
+    const contenido = JSON.stringify(trayectoria, null, 2);
 
-    // Enviar al backend
     await invoke("save_trajectory", {
       path: filePath,
       contenido,
     });
 
     alert("Trayectoria guardada exitosamente.");
+    return true;
   } catch (error) {
     console.error("Error al guardar trayectoria:", error);
     alert("Error al guardar trayectoria.");
+    return false;
   }
 }

@@ -14,10 +14,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import "./gestorTrayectorias.css";
 import { trayectoriaMock, Trayectoria, PuntoTrayectoria } from "./gestorTrayectorias_Mock";
 import { guardarTrayectoria } from "./controllers/guardarTrayectorias.tsx";
+import { cargarTrayectoria } from "./controllers/cargarTrayectoria.tsx";
 
 interface MenuContextProps {
   visible: boolean;
@@ -89,6 +92,7 @@ function SortableItem({
 
 export const GestorTrayectorias = () => {
   const [trayectoria, setTrayectoria] = useState<Trayectoria>(trayectoriaMock);
+  const [trayectoriaBase, setTrayectoriaBase] = useState<Trayectoria>(trayectoriaMock);
   const [seleccionado, setSeleccionado] = useState<number | null>(null);
   const [ejecutando, setEjecutando] = useState<number | null>(null);
 
@@ -108,6 +112,19 @@ export const GestorTrayectorias = () => {
     })
   );
 
+  // Función para sincronizar base y estado actual
+  const actualizarBase = (nuevaTrayectoria: Trayectoria) => {
+    setTrayectoriaBase(JSON.parse(JSON.stringify(nuevaTrayectoria))); // deep clone
+    setTrayectoria(nuevaTrayectoria);
+  };
+
+  // Inicializar base con mock al primer render
+  useEffect(() => {
+    actualizarBase(trayectoriaMock);
+  }, []);
+
+  const hayCambiosSinGuardar =
+    JSON.stringify(trayectoria) !== JSON.stringify(trayectoriaBase);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -204,30 +221,112 @@ export const GestorTrayectorias = () => {
     setMenuContext({ ...menuContext, visible: false });
   };
 
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const nuevoNombre = e.target.value;
-    setTrayectoria((prev) => ({ ...prev, nombre: nuevoNombre }));
-  };
-
-  const handleGuardar = () => {
-    guardarTrayectoria(trayectoria);
+  const handleGuardar = async () => {
+    const guardadoExitoso = await guardarTrayectoria(trayectoria);
+    if (guardadoExitoso) {
+      actualizarBase(trayectoria);
+      toast.success("Trayectoria guardada correctamente.");
+    } else {
+      toast.error("Error al guardar la trayectoria.");
+    }
   };
 
   const handleClickOutside = () => {
     if (menuContext.visible) setMenuContext({ ...menuContext, visible: false });
   };
 
+  const handleNuevaTrayectoria = async () => {
+    if (trayectoria.nombre !== "" || trayectoria.puntos.length > 0) {
+      const quiereGuardar = await window.confirm(
+        "¿Querés guardar la trayectoria actual antes de crear una nueva?"
+      );
+      if (quiereGuardar) {
+        const guardadoExitoso = await guardarTrayectoria(trayectoria);
+        if (guardadoExitoso) {
+          actualizarBase({ nombre: "", puntos: [] });
+          setSeleccionado(null);
+          setEjecutando(null);
+        }
+      } else {
+        const crearNueva = await window.confirm(
+          "¿Estás seguro que querés crear una nueva trayectoria sin guardar?"
+        );
+        if (crearNueva) {
+          actualizarBase({ nombre: "", puntos: [] });
+          setSeleccionado(null);
+          setEjecutando(null);
+        }
+      }
+    } else {
+      actualizarBase({ nombre: "", puntos: [] });
+      setSeleccionado(null);
+      setEjecutando(null);
+    }
+  };
+
+  const handleCargar = async () => {
+    if (trayectoria.nombre !== "" || trayectoria.puntos.length > 0) {
+      const confirmar = await window.confirm(
+        "Tenés una trayectoria cargada o en edición. Si cargas otra, se perderán los cambios no guardados. ¿Querés continuar?"
+      );
+      if (!confirmar) return;
+    }
+
+    try {
+      const trayectoriaCargada = await cargarTrayectoria();
+      const idToast = toast.loading("Cargando trayectoria...");
+      if (trayectoriaCargada) {
+        actualizarBase(trayectoriaCargada);
+        setSeleccionado(null);
+        setEjecutando(null);
+        toast.update(idToast, {
+          render: "Trayectoria cargada correctamente.",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        });
+      } else {
+        toast.update(idToast, {
+          render: "No se cargó ninguna trayectoria.",
+          type: "info",
+          isLoading: false,
+          autoClose: 2000,
+        });
+      }
+    } catch (error) {
+      toast.update(idToast, {
+        render: "Error al cargar la trayectoria.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
+  };
+
   return (
     <div className="gestor-container" onClick={handleClickOutside}>
       <div style={{ marginBottom: "1rem" }}>
         <label htmlFor="nombre-trayectoria">Nombre Trayectoria:</label>
-        <input
-          id="nombre-trayectoria"
-          type="text"
-          value={trayectoria.nombre}
-          onChange={handleNombreChange}
-          style={{ marginLeft: 10, padding: "0.25rem 0.5rem" }}
-        />
+        <div
+          style={{
+            marginLeft: 10,
+            padding: "0.25rem 0.5rem",
+            border: "1px solid #ccc",
+            minHeight: "1.5rem",
+            display: "inline-block",
+            minWidth: "200px",
+            userSelect: "text",
+            backgroundColor: "#f9f9f9",
+          }}
+          title="El nombre se asigna automáticamente al cargar el archivo"
+        >
+          {trayectoria.nombre || <i>(Sin nombre)</i>}
+        </div>
+        {hayCambiosSinGuardar && (
+          <div style={{ color: "red", fontWeight: "bold", marginTop: 4 }}>
+            (Cambios sin guardar)
+          </div>
+        )}
       </div>
 
       <DndContext
@@ -270,10 +369,8 @@ export const GestorTrayectorias = () => {
 
       <div className="botones-lateral">
         <button onClick={handleGuardar}>Guardar</button>
-        <button disabled title="Funcionalidad en desarrollo">
-          Cargar
-        </button>
-        <button disabled title="Funcionalidad en desarrollo">
+        <button onClick={handleCargar}>Cargar</button>
+        <button onClick={() => void handleNuevaTrayectoria()}>
           Nueva Trayectoria
         </button>
         <button disabled title="Funcionalidad en desarrollo">
@@ -283,6 +380,16 @@ export const GestorTrayectorias = () => {
           Añadir Punto
         </button>
       </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={true}
+        pauseOnHover={false}
+        draggable={true}
+        theme="colored"
+      />
     </div>
   );
 };
