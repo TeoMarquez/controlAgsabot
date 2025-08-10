@@ -10,11 +10,12 @@ interface Junta {
 
 const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 
-const generarJuntasAleatorias = (): Junta[] => {
-  return nombres.map((nombre) => ({
+const generarJuntasFijas = (): Junta[] => {
+  const gradosFijos = [30, 40, 50, 60, 70];
+  return nombres.map((nombre, index) => ({
     nombre,
-    grados: "\n" + String(Math.floor(Math.random() * 181)) + "°",
-    potenciometro: "\n" + String(Math.random().toFixed(2)),
+    grados: "\n" + gradosFijos[index] + "°",
+    potenciometro: "\n" + (0.5 + index * 0.1).toFixed(2), // valor mock de potenciómetro
   }));
 };
 
@@ -29,7 +30,7 @@ const generarJuntasVacias = (): Junta[] => {
 export const useMonitorMock = () => {
   const { state } = useConexionSerial();
   const [juntas, setJuntas] = useState<Junta[]>(
-    state.conectado ? generarJuntasAleatorias() : generarJuntasVacias()
+    state.conectado ? generarJuntasFijas() : generarJuntasVacias()
   );
 
   useEffect(() => {
@@ -38,11 +39,9 @@ export const useMonitorMock = () => {
       return;
     }
 
-    const interval = setInterval(() => {
-      setJuntas(generarJuntasAleatorias());
-    }, 2000);
+    // Si está conectado, setea siempre los valores fijos
+    setJuntas(generarJuntasFijas());
 
-    return () => clearInterval(interval);
   }, [state.conectado]);
 
   return { juntas, seleccionado: 0 };

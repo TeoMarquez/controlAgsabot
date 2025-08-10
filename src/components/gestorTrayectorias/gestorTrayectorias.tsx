@@ -21,6 +21,7 @@ import "./gestorTrayectorias.css";
 import { trayectoriaMock, Trayectoria, PuntoTrayectoria } from "./gestorTrayectorias_Mock";
 import { guardarTrayectoria } from "./controllers/guardarTrayectorias.tsx";
 import { cargarTrayectoria } from "./controllers/cargarTrayectoria.tsx";
+import { useMonitorMock } from "../monitor/monitor_Mock"; // <--- aquí el import
 
 interface MenuContextProps {
   visible: boolean;
@@ -111,6 +112,9 @@ export const GestorTrayectorias = () => {
       },
     })
   );
+
+  // Usamos el mock para obtener juntas actuales (aleatorias o vacías según conexión)
+  const monitorMock = useMonitorMock();
 
   // Función para sincronizar base y estado actual
   const actualizarBase = (nuevaTrayectoria: Trayectoria) => {
@@ -222,9 +226,9 @@ export const GestorTrayectorias = () => {
   };
 
   const handleGuardar = async () => {
-    const guardadoExitoso = await guardarTrayectoria(trayectoria);
-    if (guardadoExitoso) {
-      actualizarBase(trayectoria);
+    const trayectoriaActualizada = await guardarTrayectoria(trayectoria);
+    if (trayectoriaActualizada) {
+      actualizarBase(trayectoriaActualizada);
       toast.success("Trayectoria guardada correctamente.");
     } else {
       toast.error("Error al guardar la trayectoria.");
@@ -303,6 +307,26 @@ export const GestorTrayectorias = () => {
     }
   };
 
+  const handleAñadirPunto = () => {
+    const nuevoPunto: PuntoTrayectoria = {
+      juntas: monitorMock.juntas.map((j) => ({
+        nombre: j.nombre,
+        grados: j.grados.trim(), 
+      })),
+    };
+
+    setTrayectoria((prev) => {
+      const nuevaTrayectoria = {
+        ...prev,
+        puntos: [...prev.puntos, nuevoPunto],
+      };
+      setTrayectoriaBase(JSON.parse(JSON.stringify(nuevaTrayectoria))); // actualizar base para evitar falso "sin guardar"
+      return nuevaTrayectoria;
+    });
+
+    setSeleccionado(trayectoria.puntos.length); 
+  };
+
   return (
     <div className="gestor-container" onClick={handleClickOutside}>
       <div style={{ marginBottom: "1rem" }}>
@@ -376,7 +400,7 @@ export const GestorTrayectorias = () => {
         <button disabled title="Funcionalidad en desarrollo">
           Ejecutar Trayectoria
         </button>
-        <button disabled title="Funcionalidad en desarrollo">
+        <button onClick={handleAñadirPunto} title="Añadir Punto">
           Añadir Punto
         </button>
       </div>
