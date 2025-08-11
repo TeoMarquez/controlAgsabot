@@ -12,8 +12,6 @@ export interface Trayectoria {
   puntos: PuntoTrayectoria[];
 }
 
-const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
-
 export const trayectoriaMock: Trayectoria = {
   nombre: "",
   puntos: [],

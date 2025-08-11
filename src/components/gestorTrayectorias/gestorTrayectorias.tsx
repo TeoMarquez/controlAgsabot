@@ -133,8 +133,8 @@ export const GestorTrayectorias = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = parseInt(active.id);
-      const newIndex = parseInt(over.id);
+      const oldIndex = parseInt(String(active.id));
+      const newIndex = parseInt(String(over.id));
 
       setTrayectoria((prev) => {
         const newPuntos = arrayMove(prev.puntos, oldIndex, newIndex);
@@ -269,41 +269,41 @@ export const GestorTrayectorias = () => {
   };
 
   const handleCargar = async () => {
-    if (trayectoria.nombre !== "" || trayectoria.puntos.length > 0) {
-      const confirmar = await window.confirm(
-        "Tenés una trayectoria cargada o en edición. Si cargas otra, se perderán los cambios no guardados. ¿Querés continuar?"
-      );
-      if (!confirmar) return;
-    }
+    let idToast: React.ReactText | null = null;
 
     try {
       const trayectoriaCargada = await cargarTrayectoria();
-      const idToast = toast.loading("Cargando trayectoria...");
-      if (trayectoriaCargada) {
-        actualizarBase(trayectoriaCargada);
-        setSeleccionado(null);
-        setEjecutando(null);
+
+      if (!trayectoriaCargada) {
+        alert("No se seleccionó archivo.");
+        return;
+      }
+
+      // Mostrar toast sólo después de que el archivo fue seleccionado y está cargando
+      idToast = toast.loading("Cargando trayectoria...");
+
+      actualizarBase(trayectoriaCargada);
+      setSeleccionado(null);
+      setEjecutando(null);
+
+      toast.update(idToast, {
+        render: "Trayectoria cargada correctamente.",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
+
+    } catch (error) {
+      if (idToast !== null) {
         toast.update(idToast, {
-          render: "Trayectoria cargada correctamente.",
-          type: "success",
+          render: "Error al cargar la trayectoria.",
+          type: "error",
           isLoading: false,
-          autoClose: 2000,
+          autoClose: 3000,
         });
       } else {
-        toast.update(idToast, {
-          render: "No se cargó ninguna trayectoria.",
-          type: "info",
-          isLoading: false,
-          autoClose: 2000,
-        });
+        alert("Error al cargar la trayectoria.");
       }
-    } catch (error) {
-      toast.update(idToast, {
-        render: "Error al cargar la trayectoria.",
-        type: "error",
-        isLoading: false,
-        autoClose: 3000,
-      });
     }
   };
 

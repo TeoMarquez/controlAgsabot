@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+import { resolve } from "path";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
@@ -21,6 +23,15 @@ export default defineConfig({
       : undefined,
     watch: {
       ignored: ["**/src-tauri/**"],
+    },
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        traficoUCI: resolve(__dirname, "traficoUCI.html"),
+        visualizador3d: resolve(__dirname, "visualizador3d.html"),
+      },
     },
   },
 });

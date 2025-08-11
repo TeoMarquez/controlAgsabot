@@ -16,6 +16,10 @@ use commands::states_control::{obtener_datos_registro, set_modo, set_puerto_libe
 // Importa el handler nuevo de tu módulo filesControl
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 
+// Importa el gestor de ventanas
+use commands::windowsManager::trafficWindow::{abrir_ventana};
+
+
 fn main() {
     // Estado para registro de datos recibidos
     let registro = Arc::new(Mutex::new(Registro {
@@ -44,6 +48,7 @@ fn main() {
             set_conectar_serial,
             save_trajectory, // <-- Agregá tu comando aquí
             load_trajectory,
+            abrir_ventana,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState} from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ConexionSerialProvider } from "./components/conexionSerial/conexionSerial_Context";
 import { ControlModosProvider } from "./components/controlModos/controlModos_Context";
@@ -8,9 +8,11 @@ import Header from "./components/Header";
 import Monitor from "./components/monitor/monitor";
 import { useMonitorMock } from "./components/monitor/monitor_Mock";
 import "./styles/globals.css";
-import {GestorTrayectorias} from "./components/gestorTrayectorias/gestorTrayectorias"
+import { GestorTrayectorias } from "./components/gestorTrayectorias/gestorTrayectorias";
+import { BotonVentanaSecundaria } from "./components/newWindow_Trafico/btnVentanaTrafico";
 
 function App() {
+
   const [conectado, setConectado] = useState(false);
 
   const handleTutorialClick = () => {
@@ -43,8 +45,6 @@ function App() {
               <div className="flex-grow max-w-md flex flex-col space-y-4">
                 <ConexionSerial />
                 <ControlModos />
-
-                {/* Botón para cambiar el flag en Rust */}
                 <button
                   onClick={toggleConexion}
                   className={`px-4 py-2 rounded text-white transition ${
@@ -53,6 +53,11 @@ function App() {
                 >
                   {conectado ? "Conectado" : "Desconectado"}
                 </button>
+
+                <BotonVentanaSecundaria
+                  label="Abrir Ventana de Tráficoaaa"
+                  windowLabel="Ventana de Trafico UCIaaa"
+                />
               </div>
             </div>
 

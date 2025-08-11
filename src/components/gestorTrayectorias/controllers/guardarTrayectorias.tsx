@@ -1,5 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import type { Trayectoria } from "../gestorTrayectorias_Mock";
 
 export async function guardarTrayectoria(trayectoria: Trayectoria): Promise<Trayectoria | null> {
   try {
