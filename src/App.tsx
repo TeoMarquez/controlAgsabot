@@ -55,9 +55,14 @@ function App() {
                 </button>
 
                 <BotonVentanaSecundaria
-                  label="Abrir Ventana de Tráficoaaa"
-                  windowLabel="Ventana de Trafico UCIaaa"
+                  label="Abrir Ventana de Tráfico"
+                  windowLabel="ventana_trafico_uci"
                 />
+                <BotonVentanaSecundaria
+                  label="Abrir Visualizador 3D"
+                  windowLabel="ventana_visualizacion_3d"
+                />
+          
               </div>
             </div>
 
