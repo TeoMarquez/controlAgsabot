@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 interface Props {
@@ -6,22 +8,43 @@ interface Props {
 }
 
 export function BotonVentanaSecundaria({ label = "Abrir ventana", windowLabel }: Props) {
-  const abrirVentana = async () => {
+  const [visible, setVisible] = useState(false);
+
+  const toggleVentana = async () => {
     try {
-      const resultado = await invoke<string>("abrir_ventana", { label: windowLabel });
-      console.log(resultado);
-      alert(resultado);
+      if (visible) {
+        await invoke("ocultar_ventana", { label: windowLabel });
+      } else {
+        await invoke("abrir_ventana", { label: windowLabel });
+      }
     } catch (error) {
-      console.error("Error invocando abrir_ventana", error);
+      console.error("Error invocando toggle ventana", error);
     }
   };
 
+  useEffect(() => {
+    const unlisten = listen<[string, boolean]>("window-visibility-changed", (event) => {
+      const [label, isVisible] = event.payload;
+      if (label === windowLabel) {
+        setVisible(isVisible);
+      }
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [windowLabel]);
+
   return (
     <button
-      onClick={abrirVentana}
-      className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition"
+      onClick={toggleVentana}
+      className={`px-4 py-2 rounded text-white transition duration-300 ease-in-out ${
+        visible
+          ? "bg-blue-600 text-white font-bold shadow-lg transform scale-105"
+          : "bg-blue-400 text-blue-800 hover:bg-blue-300 hover:text-white"
+      }`}
     >
-      {label}
+      {visible ? "Ocultar" : "Abrir"} {label}
     </button>
   );
 }

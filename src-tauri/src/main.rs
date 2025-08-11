@@ -16,10 +16,11 @@ use commands::states_control::{
 };
 
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
-
-use commands::windowsManager::trafficWindow::abrir_ventana;
+use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
 
 use tauri::{Manager, WindowEvent};
+use tauri::Emitter;
+
 
 fn main() {
     let registro = Arc::new(Mutex::new(Registro {
@@ -44,32 +45,46 @@ fn main() {
             save_trajectory,
             load_trajectory,
             abrir_ventana,
+            ocultar_ventana, // ← nuevo
+
         ])
         .setup(|app| {
             let app_handle = app.handle();
 
-            // Ventanas secundarias: ocultar en vez de cerrar
+            // Ventanas secundarias: ocultar en vez de cerrar + emitir evento cuando se oculta
             for label in &[
-                "ventana_trafico_uci",
-                "ventana_visualizacion_3d",
-            ] {
-                if let Some(window) = app_handle.get_window(label) {
-                    let window_clone = window.clone();
-                    window.on_window_event(move |event| {
-                        if let WindowEvent::CloseRequested { api, .. } = event {
-                            api.prevent_close();
-                            window_clone.hide().unwrap();
-                        }
-                    });
+                    "ventana_trafico_uci",
+                    "ventana_visualizacion_3d",
+                ] {
+                    if let Some(window) = app_handle.get_window(label) {
+                        let window_clone = window.clone();
+                        let app_handle_clone = app_handle.clone();
+                        let label_clone = label.to_string();
+
+                        window_clone.clone().on_window_event(move |event| {
+                            if let WindowEvent::CloseRequested { api, .. } = event {
+                                api.prevent_close();
+
+                                // Usamos la clon para esconder
+                                window_clone.hide().unwrap();
+
+                                // Emitir evento que ventana se ocultó
+                                if let Some(main_window) = app_handle_clone.get_window("main") {
+                                    let _ = main_window.emit(
+                                        "window-visibility-changed",
+                                        (label_clone.clone(), false),
+                                    );
+                                }
+                            }
+                        });
+                    }
                 }
-            }
 
             // Ventana principal: cerrar toda la app al cerrar esta ventana
             if let Some(main_window) = app_handle.get_window("main") {
                 let app_handle_clone = app_handle.clone();
                 main_window.on_window_event(move |event| {
                     if let WindowEvent::CloseRequested { .. } = event {
-                        // Forzar cierre total
                         app_handle_clone.exit(0);
                     }
                 });

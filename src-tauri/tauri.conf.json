@@ -28,7 +28,9 @@
         "decorations": true,
         "transparent": false,
         "skipTaskbar": false,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "x": 900,
+        "y": 150
       },
       {
         "title": "Ventana de Visualizacion 3D",
@@ -38,7 +40,9 @@
         "decorations": true,
         "transparent": false,
         "skipTaskbar": false,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "x": 900,
+        "y": 150
       }
     ],
     "security": {
