@@ -50,14 +50,6 @@ function App() {
               <div className="flex-grow max-w-md flex flex-col space-y-4">
                 <ConexionSerial />
                 <ControlModos />
-                <button
-                  onClick={toggleConexion}
-                  className={`px-4 py-2 rounded text-white transition ${
-                    conectado ? "bg-green-500" : "bg-red-500"
-                  }`}
-                >
-                  {conectado ? "Conectado" : "Desconectado"}
-                </button>
 
                 <BotonVentanaSecundaria
                   label="Abrir Ventana de Tráfico"
