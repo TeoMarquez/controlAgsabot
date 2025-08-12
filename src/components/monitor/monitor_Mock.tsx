@@ -1,6 +1,6 @@
-// monitor_Mock.ts
 import { useEffect, useState } from "react";
 import { useConexionSerial } from "../conexionSerial/conexionSerial_Context";
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 interface Junta {
   nombre: string;
@@ -8,30 +8,23 @@ interface Junta {
   potenciometro: string;
 }
 
+interface ParserPayload {
+  estado: string;
+  juntas: Junta[];
+}
+
 const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 
-const generarJuntasFijas = (): Junta[] => {
-  const gradosFijos = [30, 40, 50, 60, 70];
-  return nombres.map((nombre, index) => ({
+const generarJuntasVacias = (): Junta[] =>
+  nombres.map((nombre) => ({
     nombre,
-    grados: "\n" + gradosFijos[index] + "°",
-    potenciometro: "\n" + (0.5 + index * 0.1).toFixed(2), // valor mock de potenciómetro
+    grados: "-",
+    potenciometro: "-",
   }));
-};
-
-const generarJuntasVacias = (): Junta[] => {
-  return nombres.map((nombre) => ({
-    nombre,
-    grados: "\n-",
-    potenciometro: "\n-",
-  }));
-};
 
 export const useMonitorMock = () => {
   const { state } = useConexionSerial();
-  const [juntas, setJuntas] = useState<Junta[]>(
-    state.conectado ? generarJuntasFijas() : generarJuntasVacias()
-  );
+  const [juntas, setJuntas] = useState<Junta[]>(generarJuntasVacias());
 
   useEffect(() => {
     if (!state.conectado) {
@@ -39,9 +32,20 @@ export const useMonitorMock = () => {
       return;
     }
 
-    // Si está conectado, setea siempre los valores fijos
-    setJuntas(generarJuntasFijas());
+    let unlisten: UnlistenFn | null = null;
 
+    (async () => {
+      unlisten = await listen("serial-parser", (event) => {
+        const payload = event.payload as ParserPayload;
+        if (payload?.juntas && payload.juntas.length === 5) {
+          setJuntas(payload.juntas);
+        }
+      });
+    })();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, [state.conectado]);
 
   return { juntas, seleccionado: 0 };

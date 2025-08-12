@@ -1,14 +1,36 @@
 import { useConexionSerial } from "./conexionSerial_Context";
 import { conexionSerialMock } from "./conexionSerial_Mock";
 import "./conexionSerial_Styles.css";
+import { invoke } from "@tauri-apps/api/core";
 
 export const ConexionSerial = () => {
   const { state, dispatch } = useConexionSerial();
 
   const conexionDisponible = state.puerto !== "" && state.baudrate !== "";
 
-  const toggleConexion = () => {
-    dispatch({ type: "TOGGLE_CONEXION" });
+  const toggleConexion = async () => {
+    if (!state.conectado) {
+      if (conexionDisponible) {
+        try {
+          await invoke("configurar_puerto", {
+            puerto: state.puerto,
+            velocidad: Number(state.baudrate),
+          });
+          dispatch({ type: "TOGGLE_CONEXION" });
+        } catch (e) {
+          console.error("Error al configurar puerto:", e);
+          // Podés mostrar notificación o alerta aquí
+        }
+      }
+    } else {
+      try {
+        await invoke("desconectar_puerto");
+        dispatch({ type: "TOGGLE_CONEXION" });
+      } catch (e) {
+        console.error("Error al desconectar puerto:", e);
+        // Notificación o manejo de error
+      }
+    }
   };
 
   return (
@@ -62,6 +84,5 @@ export const ConexionSerial = () => {
         <label htmlFor="cb3-8" data-tg-on="ON" data-tg-off="OFF" className="tgl-btn" />
       </div>
     </div>
-    
   );
 };

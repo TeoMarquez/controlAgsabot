@@ -4,52 +4,52 @@
 )]
 
 mod serial;
-mod state;
 mod commands;
-
-use std::sync::{Arc, Mutex};
-
-use state::registro::Registro;
-use commands::states_control::{
-    obtener_datos_registro, set_modo, set_puerto_liberado, set_lista_texto, get_estado,
-    set_conectar_serial, AppState,
-};
 
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
+use commands::controlUsb::controlar_Usb::{configurar_puerto,desconectar_puerto, obtener_estado_serial};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
 
+use crate::serial::handler::{SerialSharedState, SerialHandler};
+use std::sync::{Arc, Mutex};
+
 
 fn main() {
-    let registro = Arc::new(Mutex::new(Registro {
-        nombre: "N/A".into(),
-        timestamp: "N/A".into(),
-    }));
-
-    let estado = Arc::new(AppState::default());
-
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(registro)
-        .manage(estado)
+        
         .invoke_handler(tauri::generate_handler![
-            set_modo,
-            set_puerto_liberado,
-            set_lista_texto,
-            get_estado,
-            obtener_datos_registro,
-            set_conectar_serial,
             save_trajectory,
             load_trajectory,
             abrir_ventana,
-            ocultar_ventana, // ← nuevo
+            ocultar_ventana,
+            configurar_puerto,
+            desconectar_puerto,
+            obtener_estado_serial,
 
         ])
         .setup(|app| {
             let app_handle = app.handle();
+
+
+            let shared_state = Arc::new(SerialSharedState {
+                puerto_liberado: Mutex::new(true),  // puerto inicialmente cerrado
+                puerto: Mutex::new(String::new()),  // vacío porque no hay puerto asignado
+                velocidad: Mutex::new(9600),        // o lo que quieras default
+                modo: Mutex::new("S".to_string()),
+            });
+
+            // Crear el handler serial, pasando el estado y app_handle
+            let serial_handler = SerialHandler::new(shared_state.clone(), app_handle.clone());
+
+            // Registrar en el estado global de Tauri para poder inyectarlo en comandos
+            app.manage(shared_state);
+            app.manage(serial_handler);
+
 
             // Ventanas secundarias: ocultar en vez de cerrar + emitir evento cuando se oculta
             for label in &[

@@ -1,4 +1,4 @@
-// src/pages/traficoUCI/mock.ts
+// src/pages/traficoUCI/mockEnviados.ts
 export interface LogEntry {
   timestamp: string;
   message: string;
@@ -14,15 +14,6 @@ const baseEnviados = [
   "M,130,88,92,133,7; Ajuste fino de posiciones.",
 ];
 
-const baseRecibidos = [
-  "T,120,90,92,95,91, 95,85,91,110,45; Brazo desplazándose hacia SPT.",
-  "M; Se ordena modo manual.",
-  "S; Orden de detenimiento total.",
-  "T,115,80,90,130,5; Confirmación de posición alcanzada.",
-  "M,128,89,91,132,6; Estado manual activado.",
-  "S; Pausa temporal.",
-];
-
 function generateMockLogs(base: string[], count: number): LogEntry[] {
   const logs: LogEntry[] = [];
   let seconds = 5;
@@ -34,9 +25,7 @@ function generateMockLogs(base: string[], count: number): LogEntry[] {
       seconds += 1;
       millis = 0;
     }
-    const timestamp = `00:00:${seconds.toString().padStart(2, "0")}.${millis
-      .toString()
-      .padStart(2, "0")}`;
+    const timestamp = `00:00:${seconds.toString().padStart(2, "0")}.${millis.toString().padStart(2, "0")}`;
 
     const message = base[i % base.length];
     logs.push({ timestamp, message });
@@ -45,4 +34,3 @@ function generateMockLogs(base: string[], count: number): LogEntry[] {
 }
 
 export const mensajesEnviados: LogEntry[] = generateMockLogs(baseEnviados, 100);
-export const mensajesRecibidos: LogEntry[] = generateMockLogs(baseRecibidos, 100);

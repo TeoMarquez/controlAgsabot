@@ -11,6 +11,11 @@ import "./styles/globals.css";
 import { GestorTrayectorias } from "./components/gestorTrayectorias/gestorTrayectorias";
 import { BotonVentanaSecundaria } from "./components/newWindow_Trafico/btnVentanaTrafico";
 
+// import {MostrarEstadoConexion} from "./estadoSeria" // Componente para mostrar el estado de la conexión serial
+// import {VerEventoMonitor} from "./ver_EventoMonitor" // Componente que muestra el evento raw
+// import {VerEventoParser} from "./ver_EventoParseado" // Componente que muestra el evento parser
+
+
 function App() {
 
   const [conectado, setConectado] = useState(false);
@@ -63,6 +68,11 @@ function App() {
                   windowLabel="ventana_visualizacion_3d"
                 />
           
+                {/* <MostrarEstadoConexion />  */}
+                {/* <VerEventoMonitor /> */}
+                {/* <VerEventoParser /> */} 
+
+                
               </div>
             </div>
 

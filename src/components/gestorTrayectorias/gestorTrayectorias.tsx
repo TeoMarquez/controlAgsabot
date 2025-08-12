@@ -21,7 +21,7 @@ import "./gestorTrayectorias.css";
 import { trayectoriaMock, Trayectoria, PuntoTrayectoria } from "./gestorTrayectorias_Mock";
 import { guardarTrayectoria } from "./controllers/guardarTrayectorias.tsx";
 import { cargarTrayectoria } from "./controllers/cargarTrayectoria.tsx";
-import { useMonitorMock } from "../monitor/monitor_Mock"; // <--- aquí el import
+import { useMonitorMock } from "../monitor/monitor_Mock";
 
 interface MenuContextProps {
   visible: boolean;
@@ -113,16 +113,15 @@ export const GestorTrayectorias = () => {
     })
   );
 
-  // Usamos el mock para obtener juntas actuales (aleatorias o vacías según conexión)
   const monitorMock = useMonitorMock();
 
-  // Función para sincronizar base y estado actual
   const actualizarBase = (nuevaTrayectoria: Trayectoria) => {
-    setTrayectoriaBase(JSON.parse(JSON.stringify(nuevaTrayectoria))); // deep clone
-    setTrayectoria(nuevaTrayectoria);
+    const copiaProfunda = JSON.parse(JSON.stringify(nuevaTrayectoria));
+    setTrayectoriaBase(copiaProfunda);
+    setTrayectoria(copiaProfunda);
   };
 
-  // Inicializar base con mock al primer render
+
   useEffect(() => {
     actualizarBase(trayectoriaMock);
   }, []);
@@ -210,18 +209,23 @@ export const GestorTrayectorias = () => {
 
   const sobreescribirPunto = () => {
     if (menuContext.puntoIndex === null) return;
+
     const nuevoPunto: PuntoTrayectoria = {
-      juntas: trayectoriaMock.puntos[0].juntas.map((j) => ({
-        ...j,
-        grados: String(Math.floor(Math.random() * 181)) + "°",
+      juntas: monitorMock.juntas.map((j) => ({
+        nombre: j.nombre,
+        grados: j.grados.trim(),
       })),
     };
+
     setTrayectoria((prev) => {
       const newPuntos = prev.puntos.map((p, i) =>
         i === menuContext.puntoIndex ? nuevoPunto : p
       );
-      return { ...prev, puntos: newPuntos };
+      const nuevaTrayectoria = { ...prev, puntos: newPuntos };
+
+      return nuevaTrayectoria;
     });
+
     setMenuContext({ ...menuContext, visible: false });
   };
 
@@ -269,18 +273,29 @@ export const GestorTrayectorias = () => {
   };
 
   const handleCargar = async () => {
-    let idToast: React.ReactText | null = null;
-
     try {
+      if (hayCambiosSinGuardar) {
+        const quiereGuardar = await window.confirm(
+          "Hay cambios sin guardar en la trayectoria actual. ¿Querés guardar antes de cargar otra?"
+        );
+
+        if (quiereGuardar) {
+          const guardadoExitoso = await guardarTrayectoria(trayectoria);
+          if (!guardadoExitoso) {
+            toast.error("Error al guardar la trayectoria. No se cargará otra.");
+            return; // cancelar carga si no pudo guardar
+          }
+        }
+      }
+
       const trayectoriaCargada = await cargarTrayectoria();
 
       if (!trayectoriaCargada) {
-        alert("No se seleccionó archivo.");
         return;
       }
 
-      // Mostrar toast sólo después de que el archivo fue seleccionado y está cargando
-      idToast = toast.loading("Cargando trayectoria...");
+      // Mostrar toast mientras carga
+      const idToast = toast.loading("Cargando trayectoria...");
 
       actualizarBase(trayectoriaCargada);
       setSeleccionado(null);
@@ -294,18 +309,10 @@ export const GestorTrayectorias = () => {
       });
 
     } catch (error) {
-      if (idToast !== null) {
-        toast.update(idToast, {
-          render: "Error al cargar la trayectoria.",
-          type: "error",
-          isLoading: false,
-          autoClose: 3000,
-        });
-      } else {
-        alert("Error al cargar la trayectoria.");
-      }
+      toast.error("Error al cargar la trayectoria.");
     }
   };
+
 
   const handleAñadirPunto = () => {
     const nuevoPunto: PuntoTrayectoria = {
@@ -320,7 +327,6 @@ export const GestorTrayectorias = () => {
         ...prev,
         puntos: [...prev.puntos, nuevoPunto],
       };
-      setTrayectoriaBase(JSON.parse(JSON.stringify(nuevaTrayectoria))); // actualizar base para evitar falso "sin guardar"
       return nuevaTrayectoria;
     });
 

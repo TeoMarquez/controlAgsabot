@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
-// Defino el estado específico para conexión serial
 type EstadoConexionSerial = {
   puerto: string;
   baudrate: string;
@@ -13,7 +13,8 @@ type ConexionSerialAction =
   | { type: "SET_PUERTO"; payload: string }
   | { type: "SET_BAUDRATE"; payload: string }
   | { type: "TOGGLE_CONEXION" }
-  | { type: "RESET_CONEXION" };
+  | { type: "RESET_CONEXION" }
+  | { type: "SET_ESTADO"; payload: ConexionSerialState };
 
 const initialState: ConexionSerialState = {
   puerto: "",
@@ -21,7 +22,6 @@ const initialState: ConexionSerialState = {
   conectado: false,
 };
 
-// Reducer simple para manejar acciones del estado
 function conexionSerialReducer(
   state: ConexionSerialState,
   action: ConexionSerialAction
@@ -32,25 +32,23 @@ function conexionSerialReducer(
     case "SET_BAUDRATE":
       return { ...state, baudrate: action.payload };
     case "TOGGLE_CONEXION":
-      // Si desconectamos, reseteamos puerto y baudrate
       if (state.conectado) {
         return { puerto: "", baudrate: "", conectado: false };
       } else {
-        // Si conectamos, sólo activamos conectado (puerto y baudrate deben estar set)
         if (state.puerto !== "" && state.baudrate !== "") {
           return { ...state, conectado: true };
         }
-        // Si no está todo seleccionado, no conectamos
         return state;
       }
     case "RESET_CONEXION":
       return { puerto: "", baudrate: "", conectado: false };
+    case "SET_ESTADO":
+      return action.payload;
     default:
       return state;
   }
 }
 
-// Definimos el tipo de contexto
 type ConexionSerialContextType = {
   state: ConexionSerialState;
   dispatch: React.Dispatch<ConexionSerialAction>;
@@ -63,6 +61,25 @@ const ConexionSerialContext = createContext<ConexionSerialContextType | undefine
 export const ConexionSerialProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(conexionSerialReducer, initialState);
 
+  // Al montar, leer estado real desde backend
+  useEffect(() => {
+    (async () => {
+      try {
+        const [puerto, velocidad, conectado] = await invoke<[string, number, boolean]>("obtener_estado_serial");
+        dispatch({
+          type: "SET_ESTADO",
+          payload: {
+            puerto,
+            baudrate: String(velocidad),
+            conectado,
+          },
+        });
+      } catch (e) {
+        console.error("Error obteniendo estado serial:", e);
+      }
+    })();
+  }, []);
+
   return (
     <ConexionSerialContext.Provider value={{ state, dispatch }}>
       {children}
@@ -70,13 +87,10 @@ export const ConexionSerialProvider = ({ children }: { children: ReactNode }) =>
   );
 };
 
-// Hook para usar contexto fácilmente
 export const useConexionSerial = (): ConexionSerialContextType => {
   const context = useContext(ConexionSerialContext);
   if (!context) {
-    throw new Error(
-      "useConexionSerial debe usarse dentro de un ConexionSerialProvider"
-    );
+    throw new Error("useConexionSerial debe usarse dentro de un ConexionSerialProvider");
   }
   return context;
 };
