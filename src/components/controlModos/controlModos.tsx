@@ -2,6 +2,7 @@ import React from "react";
 import "./controlModos_Styles.css";
 import { useConexionSerial } from "../conexionSerial/conexionSerial_Context";
 import { useControlModos, useControlModosDispatch } from "./controlModos_Context";
+import { invoke } from "@tauri-apps/api/core";
 
 const ControlModos = () => {
   const { state: conexionState } = useConexionSerial();
@@ -20,8 +21,16 @@ const ControlModos = () => {
     }
   }, [conexionDisponible, modo, dispatch]);
 
-  const handleModoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch({ type: "SET_MODO", payload: e.target.value as any });
+  const handleModoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const nuevoModo = e.target.value as any;
+  dispatch({ type: "SET_MODO", payload: nuevoModo });
+
+  try {
+      const respuesta = await invoke<string>("set_modo", { modo: nuevoModo });
+      console.log("Respuesta backend:", respuesta);
+    } catch (err) {
+      console.error("Error invocando set_modo:", err);
+    }
   };
 
   return (

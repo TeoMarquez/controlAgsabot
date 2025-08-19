@@ -9,6 +9,7 @@ mod commands;
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
 use commands::controlUsb::controlar_Usb::{configurar_puerto,desconectar_puerto, obtener_estado_serial};
+use commands::state_Control::stateControl::{set_modo};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
@@ -30,6 +31,7 @@ fn main() {
             configurar_puerto,
             desconectar_puerto,
             obtener_estado_serial,
+            set_modo,
 
         ])
         .setup(|app| {
@@ -44,7 +46,7 @@ fn main() {
             });
 
             // Crear el handler serial, pasando el estado y app_handle
-            let serial_handler = SerialHandler::new(shared_state.clone(), app_handle.clone());
+            let serial_handler = Arc::new(SerialHandler::new(shared_state.clone(), app_handle.clone()));
 
             // Registrar en el estado global de Tauri para poder inyectarlo en comandos
             app.manage(shared_state);
