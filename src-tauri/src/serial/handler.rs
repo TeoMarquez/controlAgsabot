@@ -66,10 +66,12 @@ impl SerialHandler {
 
         let mut ultimo_modo_guard = self.ultimo_modo_enviado.lock().unwrap();
 
-        if modo_actual == "S" && comando != "M" && comando != "S" {
+        // Permitir comandos T aunque estemos en stop
+        if modo_actual == "S" && comando != "M" && comando != "S" && !comando.starts_with('T') {
             return Err("Modo stop activo: no se envían comandos excepto cambio de modo".into());
         }
 
+        // Evitar enviar repetidamente M o S
         if (comando == "M" || comando == "S") && comando == *ultimo_modo_guard {
             return Err("Comando de modo repetido, no se envía".into());
         }
@@ -80,6 +82,7 @@ impl SerialHandler {
                 format!("{};", comando)
             }
             _ => {
+                // Validar comando T
                 if comando.starts_with('T') {
                     let partes: Vec<&str> = comando.split(',').collect();
                     if partes.len() == 6 && partes[0] == "T" {
@@ -113,6 +116,7 @@ impl SerialHandler {
             .send(comando_prefijado)
             .map_err(|e| format!("Error enviando comando: {}", e))
     }
+
 
     fn serial_worker_loop(
     shared_state: Arc<SerialSharedState>,

@@ -23,6 +23,9 @@ import { guardarTrayectoria } from "./controllers/guardarTrayectorias.tsx";
 import { cargarTrayectoria } from "./controllers/cargarTrayectoria.tsx";
 import { useMonitorMock } from "../monitor/monitor_Mock";
 
+import { useControlModos } from "../controlModos/controlModos_Context";
+import { invoke } from "@tauri-apps/api/core";
+
 interface MenuContextProps {
   visible: boolean;
   x: number;
@@ -96,6 +99,7 @@ export const GestorTrayectorias = () => {
   const [trayectoriaBase, setTrayectoriaBase] = useState<Trayectoria>(trayectoriaMock);
   const [seleccionado, setSeleccionado] = useState<number | null>(null);
   const [ejecutando, setEjecutando] = useState<number | null>(null);
+  const { modo } = useControlModos();
 
   const [menuContext, setMenuContext] = useState<MenuContextProps>({
     visible: false,
@@ -179,10 +183,33 @@ export const GestorTrayectorias = () => {
     setMenuContext({ ...menuContext, visible: false });
   };
 
-  const handleDoubleClick = (index: number) => {
+  const handleDoubleClick = async (index: number) => {
     setEjecutando(index);
     setSeleccionado(index);
     setMenuContext({ ...menuContext, visible: false });
+
+    // Tomar el punto de la trayectoria
+     const punto = trayectoria.puntos[index];
+
+    // Construir la cadena a enviar según el modo
+    let cadena: string;
+    if (modo === "trayectoria") {
+      const grados = punto.juntas.map((j) => j.grados.trim()).join(",");
+      cadena = `T,${grados}`; // quitar índice
+    } else {
+      cadena = punto.juntas.map((j) => j.grados.trim()).join(",");
+    }
+
+    // Mostrar por consola lo que se va a enviar
+    console.log("Enviando comando al backend:", cadena);
+
+    try {
+      const respuesta = await invoke("set_point", { punto: cadena });
+      console.log("Set enviado:", respuesta);
+    } catch (error) {
+      console.error("Error enviando set de trayectoria:", error);
+    }
+
   };
 
   const handleContextMenu = (e: MouseEvent, index: number) => {

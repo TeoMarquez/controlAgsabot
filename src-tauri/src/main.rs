@@ -10,6 +10,7 @@ use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
 use commands::controlUsb::controlar_Usb::{configurar_puerto,desconectar_puerto, obtener_estado_serial};
 use commands::state_Control::stateControl::{set_modo};
+use commands::trayectorias::trajectory_handle::{set_point};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
@@ -32,6 +33,7 @@ fn main() {
             desconectar_puerto,
             obtener_estado_serial,
             set_modo,
+            set_point,
 
         ])
         .setup(|app| {
