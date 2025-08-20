@@ -1,5 +1,12 @@
 use std::sync::Arc;
 use crate::serial::handler::SerialSharedState;
+use serialport::SerialPortType;
+
+#[derive(Clone, serde::Serialize)]
+pub struct PuertoSerial {
+    pub nombre: String,
+    pub descripcion: String,
+}
 
 #[tauri::command]
 pub fn configurar_puerto(
@@ -36,4 +43,32 @@ pub fn obtener_estado_serial(shared_state: tauri::State<Arc<SerialSharedState>>)
     let liberado = *shared_state.puerto_liberado.lock().unwrap();
     let conectado = !liberado && !puerto.is_empty();
     Ok((puerto, velocidad, conectado))
+}
+
+#[tauri::command]
+pub fn listar_puertos() -> Vec<PuertoSerial> {
+    let mut puertos = Vec::new();
+
+    match serialport::available_ports() {
+        Ok(ports) => {
+            for p in ports {
+                let descripcion = match &p.port_type {
+                    SerialPortType::UsbPort(info) => format!(
+                        "{} {}",
+                        info.manufacturer.as_deref().unwrap_or(""),
+                        info.product.as_deref().unwrap_or("")
+                    ),
+                    _ => "".to_string(),
+                };
+
+                puertos.push(PuertoSerial {
+                    nombre: p.port_name,
+                    descripcion,
+                });
+            }
+        }
+        Err(_) => {}
+    }
+
+    puertos
 }

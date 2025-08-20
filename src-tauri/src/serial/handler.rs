@@ -153,6 +153,12 @@ impl SerialHandler {
                 Err(e) => {
                     eprintln!("Error abriendo puerto serial {}: {}", puerto, e);
                     println!("Intentando reconectar en 2 segundos...");
+                    if let Some(window) = app_handle.get_window("main") {
+                        let _ = window.emit(
+                            "serial-error",
+                            format!("No se pudo abrir el puerto {}: {}", puerto, e),
+                        );
+                    }
                     thread::sleep(Duration::from_secs(2));
                     continue;
                 }
