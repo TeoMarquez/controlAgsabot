@@ -6,6 +6,7 @@
 mod serial;
 mod commands;
 mod worker_Trajectory;
+mod logs;
 
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
@@ -15,10 +16,13 @@ use commands::trayectorias::trajectory_handle::{set_point,enqueue_trayectoria};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
+use tauri::Listener;
 
 use crate::serial::handler::{SerialSharedState, SerialHandler};
 use crate::commands::trayectorias::trajectory_handle::TrayectoriaQueue;
 use crate::worker_Trajectory::worker_thread::start_trayectoria_worker;
+use crate::logs::log_sending::{start_logger_thread, LogCommand, export_log,};
+use crate::logs::log_sending::LogEntry;
 
 use std::sync::{Arc, Mutex};
 
@@ -38,7 +42,7 @@ fn main() {
             set_modo,
             set_point,
             enqueue_trayectoria,
-
+            export_log,
         ])
         .setup(|app| {
             let app_handle = app.handle();
@@ -54,15 +58,31 @@ fn main() {
              let trayectoria_queue = Arc::new(TrayectoriaQueue {
                 puntos: Mutex::new(Vec::new()),
             });
-            // Crear el handler serial, pasando el estado y app_handle
             let serial_handler = Arc::new(SerialHandler::new(shared_state.clone(), app_handle.clone()));
 
-            // Registrar en el estado global de Tauri para poder inyectarlo en comandos
+             // Thread de logging
+            let logger_sender = start_logger_thread();
+
+            // Suscribirse al evento 'serial-parser'
+            let sender_clone = logger_sender.clone();
+            app_handle.listen("serial-raw", move |event| {
+            let payload = event.payload();
+            if !payload.is_empty() { // opcional, por si quieres ignorar payloads vacíos
+                    let timestamp = chrono::Local::now().format("%H:%M:%S%.3f").to_string();
+                    let _ = sender_clone.send(LogCommand::NewMessage(LogEntry {
+                        timestamp,
+                        message: payload.to_string(),
+                    }));
+                }
+            });
+
+
+
             app.manage(shared_state);
             app.manage(serial_handler.clone());
             app.manage(trayectoria_queue.clone());
+            app.manage(logger_sender);
 
-            // Iniciar worker de trayectoria
             start_trayectoria_worker(serial_handler.clone(), trayectoria_queue.clone());
 
             // Ventanas secundarias: ocultar en vez de cerrar + emitir evento cuando se oculta

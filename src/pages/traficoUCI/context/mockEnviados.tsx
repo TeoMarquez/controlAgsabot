@@ -14,23 +14,7 @@ const baseEnviados = [
   "M,130,88,92,133,7; Ajuste fino de posiciones.",
 ];
 
-function generateMockLogs(base: string[], count: number): LogEntry[] {
-  const logs: LogEntry[] = [];
-  let seconds = 5;
-  let millis = 0;
-
-  for (let i = 0; i < count; i++) {
-    millis += 10;
-    if (millis >= 100) {
-      seconds += 1;
-      millis = 0;
-    }
-    const timestamp = `00:00:${seconds.toString().padStart(2, "0")}.${millis.toString().padStart(2, "0")}`;
-
-    const message = base[i % base.length];
-    logs.push({ timestamp, message });
-  }
-  return logs;
-}
-
-export const mensajesEnviados: LogEntry[] = generateMockLogs(baseEnviados, 100);
+export const mensajesEnviados: LogEntry[] = baseEnviados.map((msg, i) => ({
+  timestamp: `00:00:${Math.floor(i / 100).toString().padStart(2, "0")}.${(i % 100).toString().padStart(2, "0")}`,
+  message: msg,
+}));
