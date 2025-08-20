@@ -1,5 +1,3 @@
-import { useState} from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { ConexionSerialProvider } from "./components/conexionSerial/conexionSerial_Context";
 import { ControlModosProvider } from "./components/controlModos/controlModos_Context";
 import ControlModos from "./components/controlModos/controlModos";
@@ -9,25 +7,12 @@ import Monitor from "./components/monitor/monitor";
 import { useMonitorMock } from "./components/monitor/monitor_Mock";
 import "./styles/globals.css";
 import { GestorTrayectorias } from "./components/gestorTrayectorias/gestorTrayectorias";
-import { BotonVentanaSecundaria } from "./components/newWindow_Trafico/btnVentanaTrafico";
-
-// import {MostrarEstadoConexion} from "./estadoSeria" // Componente para mostrar el estado de la conexión serial
-// import {VerEventoMonitor} from "./ver_EventoMonitor" // Componente que muestra el evento raw
-// import {VerEventoParser} from "./ver_EventoParseado" // Componente que muestra el evento parser
-
+import { BotonVentanaSecundaria } from "./components/newWindowBtn/btnVentanaSecundaria";
 
 function App() {
 
-  const [conectado, setConectado] = useState(false);
-
   const handleTutorialClick = () => {
     alert("Tutorial activado (próximamente)");
-  };
-
-  const toggleConexion = async () => {
-    const nuevoValor = !conectado;
-    await invoke("set_conectar_serial", { valor: nuevoValor });
-    setConectado(nuevoValor);
   };
 
   return (
@@ -59,12 +44,7 @@ function App() {
                   label="Abrir Visualizador 3D"
                   windowLabel="ventana_visualizacion_3d"
                 />
-          
-                {/* <MostrarEstadoConexion />  */}
-                {/* <VerEventoMonitor /> */}
-                {/* <VerEventoParser /> */} 
-
-                
+                          
               </div>
             </div>
 
