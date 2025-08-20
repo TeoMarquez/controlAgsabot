@@ -1,140 +1,67 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { ConexionSerialProvider } from "./components/conexionSerial/conexionSerial_Context";
+import { ControlModosProvider } from "./components/controlModos/controlModos_Context";
+import ControlModos from "./components/controlModos/controlModos";
+import { ConexionSerial } from "./components/conexionSerial/conexionSerial";
+import Header from "./components/Header";
+import Monitor from "./components/monitor/monitor";
+import { useMonitorMock } from "./components/monitor/monitor_Mock";
+import "./styles/globals.css";
+import { GestorTrayectorias } from "./components/gestorTrayectorias/gestorTrayectorias";
+import { BotonVentanaSecundaria } from "./components/newWindowBtn/btnVentanaSecundaria";
 
 function App() {
-  const [nombre, setNombre] = useState<string>("N/A");
-  const [hora, setHora] = useState<string>("N/A");
 
-  const [modo, setModo] = useState<"automatico" | "manual" | "stop">("stop");
-  const [puertoLiberado, setPuertoLiberado] = useState(false);
-  const [listaTexto, setListaTexto] = useState("");
-
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      invoke<[string, string]>("obtener_datos_registro")
-        .then(([n, h]) => {
-          setNombre(n);
-          setHora(h);
-        })
-        .catch(console.error);
-    }, 1000);
-
-    return () => clearInterval(intervalo);
-  }, []);
-
-  const handleModoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valor = e.target.value as "automatico" | "manual" | "stop";
-    setModo(valor);
-    invoke("set_modo", { modo: valor }).catch(console.error);
-  };
-
-  const handleLiberarPuerto = () => {
-    const nuevoEstado = !puertoLiberado;
-    setPuertoLiberado(nuevoEstado);
-    invoke("set_puerto_liberado", { liberar: nuevoEstado }).catch(console.error);
-  };
-
-  const handleSubmitLista = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!listaTexto.trim()) {
-      alert("Por favor, ingrese texto en el área antes de enviar.");
-      return;
-    }
-
-    invoke("set_lista_texto", { texto: listaTexto.trim() }).catch(console.error);
-
-    alert("Lista enviada:\n" + listaTexto.trim());
-    setListaTexto("");
+  const handleTutorialClick = () => {
+    alert("Tutorial activado (próximamente)");
   };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>Registro AGGSABOT</h1>
-      <p>
-        Hola <b>{nombre}</b>
-      </p>
-      <p>
-        Horario de registro de <b>{nombre}</b> a: <b>{hora}</b>
-      </p>
+    <ConexionSerialProvider>
+      <ControlModosProvider>
+        <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
+          <Header onTutorialClick={handleTutorialClick} />
+          <main className="flex-grow p-4">
+            {/* Primera fila: monitor + conexión + control */}
+            <div className="flex mb-6">
+              {/* Contenedor monitor */}
+              <div className="w-130 shadow-xl rounded-lg bg-white p-4">
+                <MonitorWrapper />
+              </div>
 
-      <div style={{ marginTop: "2rem" }}>
-        <h2>Modo de operación</h2>
-        <label style={{ marginRight: "1rem" }}>
-          <input
-            type="radio"
-            name="modo"
-            value="automatico"
-            checked={modo === "automatico"}
-            onChange={handleModoChange}
-          />{" "}
-          Automático
-        </label>
-        <label style={{ marginRight: "1rem" }}>
-          <input
-            type="radio"
-            name="modo"
-            value="manual"
-            checked={modo === "manual"}
-            onChange={handleModoChange}
-          />{" "}
-          Manual
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="modo"
-            value="stop"
-            checked={modo === "stop"}
-            onChange={handleModoChange}
-          />{" "}
-          Stop
-        </label>
-      </div>
+              {/* Separación */}
+              <div className="w-15" />
 
-      <div style={{ marginTop: "2rem" }}>
-        <button
-          onClick={handleLiberarPuerto}
-          style={{
-            backgroundColor: puertoLiberado ? "#dc3545" : "#28a745",
-            color: "white",
-            border: "none",
-            padding: "0.5rem 1rem",
-            cursor: "pointer",
-            borderRadius: "4px",
-            transition: "background-color 0.3s",
-          }}
-        >
-          {puertoLiberado ? "Activar puerto serial" : "Liberar puerto serial"}
-        </button>
-      </div>
+              {/* Controles */}
+              <div className="flex-grow max-w-md flex flex-col space-y-4">
+                <ConexionSerial />
+                <ControlModos />
 
-      <form onSubmit={handleSubmitLista} style={{ marginTop: "2rem" }}>
-        <h2>Modo lista</h2>
-        <textarea
-          placeholder="Ingrese texto aquí"
-          value={listaTexto}
-          onChange={(e) => setListaTexto(e.target.value)}
-          rows={6}
-          style={{ width: "100%", padding: "0.5rem", fontSize: "1rem" }}
-        />
-        <button
-          type="submit"
-          style={{
-            marginTop: "0.5rem",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            padding: "0.5rem 1rem",
-            cursor: "pointer",
-            borderRadius: "4px",
-          }}
-        >
-          Enviar lista
-        </button>
-      </form>
-    </div>
+                <BotonVentanaSecundaria
+                  label="Abrir Ventana de Tráfico"
+                  windowLabel="ventana_trafico_uci"
+                />
+                <BotonVentanaSecundaria
+                  label="Abrir Visualizador 3D"
+                  windowLabel="ventana_visualizacion_3d"
+                />
+                          
+              </div>
+            </div>
+
+            {/* Aquí abajo, todo el ancho, el Gestor de Trayectorias */}
+            <div className="shadow-xl rounded-lg bg-white p-4">
+              <GestorTrayectorias />
+            </div>
+          </main>
+        </div>
+      </ControlModosProvider>
+    </ConexionSerialProvider>
   );
+
+  function MonitorWrapper() {
+    const monitorMock = useMonitorMock();
+    return <Monitor juntas={monitorMock.juntas} />;
+  }
 }
 
 export default App;

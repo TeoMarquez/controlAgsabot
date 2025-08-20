@@ -1,2 +1,6 @@
 // serial/commands.rs
-pub mod states_control;
+pub mod filesControl;
+pub mod windowsManager;
+pub mod controlUsb;
+pub mod state_Control;
+pub mod trayectorias;

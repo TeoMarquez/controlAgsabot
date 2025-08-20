@@ -1,34 +1,63 @@
 // src/serial/handler.rs
+
 use std::{
     io::Write,
     sync::{
-        mpsc::{self, Receiver, Sender, TryRecvError},
-        Arc,
+        mpsc::{self, Sender, Receiver, TryRecvError},
+        Arc, Mutex,
     },
     thread,
     time::Duration,
 };
-use serialport::SerialPort;
-use crate::commands::states_control::AppState;
+
+use tauri::{AppHandle, Manager, Emitter};
+use crate::{LogCommand, LogEntry};
+
+pub struct SerialSharedState {
+    pub puerto_liberado: Mutex<bool>,
+    pub puerto: Mutex<String>,    
+    pub velocidad: Mutex<u32>,    
+    pub modo: Mutex<String>,      
+}
+
+impl SerialSharedState {
+    pub fn new(puerto: String, velocidad: u32, modo: String) -> Self {
+        Self {
+            puerto_liberado: Mutex::new(false),
+            puerto: Mutex::new(puerto),
+            velocidad: Mutex::new(velocidad),
+            modo: Mutex::new(modo),
+        }
+    }
+}
 
 pub struct SerialHandler {
     write_tx: Sender<String>,
     _worker_handle: Option<thread::JoinHandle<()>>,
-    app_state: Arc<AppState>,
+    shared_state: Arc<SerialSharedState>,
+    app_handle: AppHandle,
+    ultimo_modo_enviado: Mutex<String>,
+    buffer_enviados: Mutex<Vec<String>>, // <-- nuevo
 }
 
 impl SerialHandler {
-    pub fn new(app_state: Arc<AppState>) -> Self {
+    pub fn new(
+        shared_state: Arc<SerialSharedState>, 
+        app_handle: AppHandle,
+    ) -> Self {
         let (write_tx, write_rx) = mpsc::channel();
 
         let handler = SerialHandler {
             write_tx,
             _worker_handle: None,
-            app_state: app_state.clone(),
+            shared_state: shared_state.clone(),
+            app_handle: app_handle.clone(),
+            buffer_enviados: Mutex::new(Vec::new()), // <-- nuevo
+            ultimo_modo_enviado: Mutex::new(String::new()),
         };
 
         let worker_handle = thread::spawn(move || {
-            Self::serial_worker_loop(app_state, write_rx);
+            Self::serial_worker_loop(shared_state, write_rx, app_handle);
         });
 
         SerialHandler {
@@ -38,141 +67,201 @@ impl SerialHandler {
     }
 
     pub fn escribir(&self, comando: String) -> Result<(), String> {
-        let modo = self.app_state.modo.lock().unwrap().clone();
+        let modo_actual = self.shared_state.modo.lock().unwrap().clone();
+        let mut ultimo_modo_guard = self.ultimo_modo_enviado.lock().unwrap();
 
-        let comando_prefijado = match modo.as_str() {
-            "manual" => format!("MSG {}", comando),
-            "automatico" | "stop" => {
-                if ["a", "m", "s"].contains(&comando.trim()) {
-                    format!("CMD {}", comando.trim())
+        if modo_actual == "S" && comando != "M" && comando != "S" && !comando.starts_with('T') {
+            return Err("Modo stop activo: no se envían comandos excepto cambio de modo".into());
+        }
+
+        if (comando == "M" || comando == "S") && comando == *ultimo_modo_guard {
+            return Err("Comando de modo repetido, no se envía".into());
+        }
+
+        let comando_prefijado = match comando.as_str() {
+            "M" | "S" => {
+                *ultimo_modo_guard = comando.clone();
+                format!("{};", comando)
+            }
+            _ => {
+                if comando.starts_with('T') {
+                    let partes: Vec<&str> = comando.split(',').collect();
+                    if partes.len() == 6 && partes[0] == "T" {
+                        let mut valido = true;
+                        for v in &partes[1..] {
+                            if let Ok(num) = v.parse::<i32>() {
+                                if num < 0 || num > 180 {
+                                    valido = false;
+                                    break;
+                                }
+                            } else {
+                                valido = false;
+                                break;
+                            }
+                        }
+                        if valido {
+                            format!("{};", comando)
+                        } else {
+                            return Err("Valores inválidos en comando T".into());
+                        }
+                    } else {
+                        return Err("Formato incorrecto para comando T".into());
+                    }
                 } else {
-                    return Err("Comando inválido en este modo. Solo se permite: a, m o s.".to_string());
+                    return Err("Comando desconocido".into());
                 }
             }
-            _ => return Err("Modo desconocido".to_string()),
         };
+ 
+        {
+            let mut buf = self.buffer_enviados.lock().unwrap();
+            buf.push(comando_prefijado.clone());
+        }
 
         self.write_tx
-            .send(comando_prefijado)
-            .map_err(|e| format!("Error enviando comando: {}", e))
+            .send(comando_prefijado.clone())
+            .map_err(|e| format!("Error enviando comando: {}", e))?;
+
+        Ok(())
     }
 
-    fn serial_worker_loop(app_state: Arc<AppState>, write_rx: Receiver<String>) {
-        let mut port: Option<Box<dyn SerialPort>> = None;
-        let mut modo_anterior = String::new();
-        let mut lista_texto_anterior = String::new();
 
-        let mut buffer: Vec<u8> = vec![0; 1024];
-        let mut acumulador = String::new();
+    fn serial_worker_loop(
+    shared_state: Arc<SerialSharedState>,
+    write_rx: Receiver<String>,
+    app_handle: AppHandle,
+                        ) 
+    {
+    let mut port: Option<Box<dyn serialport::SerialPort>> = None;
+    let mut buffer: Vec<u8> = vec![0; 1024];
+    let mut acumulador = String::new();
 
-        loop {
-            let modo = app_state.modo.lock().unwrap().clone();
-            let puerto_liberado = *app_state.puerto_liberado.lock().unwrap();
-            let lista_texto = app_state.lista_texto.lock().unwrap().clone();
+    let nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 
-            if puerto_liberado {
-                if port.is_some() {
-                    println!("Puerto liberado, cerrando conexión serial.");
-                    port = None;
+    loop {
+        let _modo = shared_state.modo.lock().unwrap().clone();
+        let puerto_liberado = *shared_state.puerto_liberado.lock().unwrap();
+        let puerto = shared_state.puerto.lock().unwrap().clone();
+        let velocidad = *shared_state.velocidad.lock().unwrap();
+
+        if puerto_liberado {
+            if port.is_some() {
+                println!("Puerto liberado, cerrando conexión serial.");
+                port = None;
+            }
+            println!("Puerto está liberado, sin conexión activa.");
+        } else if port.is_none() {
+            match serialport::new(puerto.clone(), velocidad)
+                .timeout(Duration::from_millis(500))
+                .open()
+            {
+                Ok(p) => {
+                    println!("Puerto serial {} abierto.", puerto);
+                    port = Some(p);
                 }
-            } else if port.is_none() {
-                let nombre_puerto = "COM7";
-
-                match serialport::new(nombre_puerto, 9600)
-                    .timeout(Duration::from_millis(500))
-                    .open()
-                {
-                    Ok(p) => {
-                        println!("Puerto serial {} abierto.", nombre_puerto);
-                        port = Some(p);
+                Err(e) => {
+                    eprintln!("Error abriendo puerto serial {}: {}", puerto, e);
+                    println!("Intentando reconectar en 2 segundos...");
+                    if let Some(window) = app_handle.get_window("main") {
+                        let _ = window.emit(
+                            "serial-error",
+                            format!("No se pudo abrir el puerto {}: {}", puerto, e),
+                        );
                     }
-                    Err(e) => {
-                        eprintln!("Error abriendo puerto serial {}: {}", nombre_puerto, e);
-                        thread::sleep(Duration::from_secs(2));
-                        continue;
-                    }
+                    thread::sleep(Duration::from_secs(2));
+                    continue;
                 }
             }
+        }
 
-            if let Some(puerto) = port.as_mut() {
-                match puerto.read(buffer.as_mut_slice()) {
-                    Ok(tam) if tam > 0 => {
-                        let datos = String::from_utf8_lossy(&buffer[..tam]);
-                        acumulador.push_str(&datos);
+        if let Some(puerto_activo) = port.as_mut() {
+            match puerto_activo.read(buffer.as_mut_slice()) {
+                Ok(tam) if tam > 0 => {
+                    let datos = String::from_utf8_lossy(&buffer[..tam]);
+                    acumulador.push_str(&datos);
 
-                        while let Some(pos) = acumulador.find('\n') {
-                            let linea = acumulador[..pos].trim().to_string();
-                            acumulador.drain(..=pos);
+                    while let Some(pos) = acumulador.find(';') {
+                        let linea = acumulador[..pos].trim().to_string();
+                        acumulador.drain(..=pos);
 
-                            println!("Recibido serial: {}", linea);
+                        // Emitir evento raw para frontend
+                        if let Err(e) = app_handle.emit("serial-raw", linea.clone()) {
+                            eprintln!("Error emitiendo serial-raw: {}", e);
+                        }
 
-                            // Si es línea con registro tipo "Nombre,timestamp"
-                            if let Some((nombre, timestamp)) = linea.split_once(',') {
-                                // Actualizamos el registro en estado compartido
-                                let mut registro_lock = app_state.registro.lock().unwrap();
-                                registro_lock.nombre = nombre.to_string();
-                                registro_lock.timestamp = timestamp.to_string();
-                                println!("Registro actualizado: {} a las {}", nombre, timestamp);
+                        // Parsear y emitir evento parseado
+                        let partes: Vec<&str> = linea.split(',').collect();
+                        if partes.len() >= 11 {
+                            let estado = partes[0].to_string();
+
+                            let mut juntas = Vec::new();
+
+                            for i in 0..5 {
+                                let pot_idx = i + 1;
+                                let grados_idx = i + 6;
+
+                                let pot_val = partes.get(pot_idx).unwrap_or(&"-").trim().to_string();
+                                let grados_val = partes.get(grados_idx).unwrap_or(&"-").trim().to_string();
+
+                                juntas.push(serde_json::json!({
+                                    "nombre": nombres[i],
+                                    "potenciometro": pot_val,
+                                    "grados": grados_val,
+                                }));
+                            }
+
+                            let payload = serde_json::json!({
+                                "estado": estado,
+                                "juntas": juntas,
+                            });
+
+                            if let Err(e) = app_handle.emit("serial-parser", payload) {
+                                eprintln!("Error emitiendo serial-parser: {}", e);
                             }
                         }
                     }
-                    Ok(_) => {}
-                    Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
-                    Err(e) => {
-                        eprintln!("Error lectura serial: {}", e);
+                }
+                Ok(_) => {}
+                Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
+                Err(e) => {
+                    eprintln!("Error lectura serial: {}", e);
+                    port = None;
+                    thread::sleep(Duration::from_secs(1));
+                    continue;
+                }
+            }
+
+            // Enviar comandos pendientes
+            match write_rx.try_recv() {
+                Ok(comando) => {
+                    if let Err(e) = puerto_activo.write_all(format!("{}\n", comando).as_bytes()) {
+                        eprintln!("Error escribiendo al serial: {}", e);
                         port = None;
                         thread::sleep(Duration::from_secs(1));
                         continue;
-                    }
-                }
-
-                match write_rx.try_recv() {
-                    Ok(comando) => {
-                        if let Err(e) = puerto.write_all(format!("{}\n", comando).as_bytes()) {
-                            eprintln!("Error escribiendo al serial: {}", e);
-                            port = None;
-                            thread::sleep(Duration::from_secs(1));
-                            continue;
-                        } else {
-                            println!("Comando enviado: {}", comando);
+                    } else {
+                        println!("Comando enviado: {}", comando);
+                        if let Err(e) = app_handle.emit("serial-sent", comando.clone()) {
+                            eprintln!("Error emitiendo serial-sent: {}", e);
                         }
                     }
-                    Err(TryRecvError::Empty) => {}
-                    Err(TryRecvError::Disconnected) => {
-                        println!("Canal de escritura desconectado, terminando hilo.");
-                        break;
-                    }
                 }
-
-                if modo != modo_anterior {
-                    println!("Modo cambiado: {}", modo);
-                    let comando_modo = format!("CMD {}", modo_to_char(&modo));
-                    if let Err(e) = puerto.write_all(format!("{}\n", comando_modo).as_bytes()) {
-                        eprintln!("Error enviando modo: {}", e);
-                    }
-                    modo_anterior = modo.clone();
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {
+                    println!("Canal de escritura desconectado, terminando hilo.");
+                    break;
                 }
-
-                if lista_texto != lista_texto_anterior && modo == "manual" {
-                    println!("Lista de texto cambiada.");
-                    if let Err(e) = puerto.write_all(format!("MSG {}\n", lista_texto).as_bytes()) {
-                        eprintln!("Error enviando lista: {}", e);
-                    }
-                    lista_texto_anterior = lista_texto.clone();
-                }
-            } else {
-                thread::sleep(Duration::from_millis(500));
+            }
+        } else {
+            thread::sleep(Duration::from_millis(500));
             }
         }
     }
 }
 
-fn modo_to_char(modo: &str) -> &str {
-    match modo {
-        "automatico" => "a",
-        "manual" => "m",
-        "stop" => "s",
-        _ => "?",
-    }
+#[tauri::command]
+pub fn export_buffer(handler: tauri::State<Arc<SerialHandler>>, path: String) -> Result<String, String> {
+    let buf = handler.buffer_enviados.lock().unwrap();
+    std::fs::write(&path, buf.join("\n")).map_err(|e| e.to_string())?;
+    Ok("Exportación completada".into())
 }
-

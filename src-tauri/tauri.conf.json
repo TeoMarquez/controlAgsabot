@@ -12,9 +12,37 @@
   "app": {
     "windows": [
       {
-        "title": "controlaggsabot",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "controlAGGSABOT",
+        "width": 1200,
+        "height": 800,
+        "resizable": false,
+        "center": true,
+        "fullscreen": false
+      },
+      {
+        "title": "Ventana de Trafico UCI",
+        "url": "traficoUCI.html",
+        "label": "ventana_trafico_uci",
+        "visible": false,
+        "decorations": true,
+        "transparent": false,
+        "skipTaskbar": false,
+        "alwaysOnTop": false,
+        "x": 900,
+        "y": 150
+      },
+      {
+        "title": "Ventana de Visualizacion 3D",
+        "url": "visualizador3D.html",
+        "label": "ventana_visualizacion_3d",
+        "visible": false,
+        "decorations": true,
+        "transparent": false,
+        "skipTaskbar": false,
+        "alwaysOnTop": false,
+        "x": 900,
+        "y": 150
       }
     ],
     "security": {
@@ -25,11 +53,7 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "../icons/culiao.ico"
     ]
   }
 }

@@ -1,0 +1,3 @@
+export const conexionSerialMock = {
+  baudrates: [9600, 19200, 38400, 57600, 115200],
+};

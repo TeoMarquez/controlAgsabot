@@ -1,0 +1,136 @@
+/* gestorTrayectorias.css */
+
+.gestor-container {
+  display: flex;
+  position: relative;
+  gap: 1rem;
+}
+
+/* Lista de puntos */
+.lista-trayectorias {
+  width: 500px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+  padding: 0.5rem;
+  user-select: none;
+}
+
+/* Punto base */
+.punto-trayectoria {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.3rem;
+  background-color: #e0e0e0;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  color: black;
+}
+
+/* Ejecutando: amarillo más fuerte */
+.punto-trayectoria.ejecutando {
+  background-color: #ffc107; /* amarillo clásico más visible */
+  color: #333;
+  transition: background-color 0.25s ease;
+}
+
+/* Seleccionado: celeste fuerte sobre ejecutando */
+.punto-trayectoria.seleccionado {
+  background-color: #2196f3 !important;
+  color: white !important;
+  cursor: default;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Cuando está ejecutando Y seleccionado: verde clarito amarillento */
+.punto-trayectoria.ejecutando.seleccionado {
+  background-color: #b9e56d !important; /* verde clarito amarillento */
+  color: #2f4f1f !important; /* texto oscuro para buen contraste */
+  border: 1.5px solid #a7c957;
+}
+
+/* Hover: celeste clarito más marcado */
+.punto-trayectoria:not(.seleccionado):hover {
+  background-color: #a3c9ff !important; /* más saturado y visible */
+  color: #000 !important;
+  cursor: grab;
+}
+
+/* Hover cuando está ejecutando pero no seleccionado */
+.punto-trayectoria.ejecutando:not(.seleccionado):hover {
+  background-color: #a3c9ff !important;
+  color: #000 !important;
+  cursor: grab;
+}
+
+/* Cursor para arrastrar cuando no seleccionado */
+.punto-trayectoria:not(.seleccionado) {
+  cursor: grab;
+}
+
+/* Cuando arrastrando */
+.punto-trayectoria[style*="cursor: grabbing"] {
+  opacity: 0.8;
+  cursor: grabbing !important;
+}
+
+/* Menú contextual */
+.menu-contextual {
+  position: absolute;
+  list-style: none;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 0.25rem 0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  z-index: 10000;
+  width: 140px;
+  transition: background-color 0.2s ease;
+}
+
+.menu-contextual li {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: #333;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Hover beige más marcado para menú contextual */
+.menu-contextual li:hover {
+  background-color: #d5cdbe; /* beige suave */
+  color: #4b4b3f; /* tono oscuro para texto en beige */
+}
+
+/* Botones laterales */
+.botones-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.botones-lateral button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.botones-lateral button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.botones-lateral button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
