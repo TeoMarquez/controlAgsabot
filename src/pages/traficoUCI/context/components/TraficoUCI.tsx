@@ -1,6 +1,6 @@
 // src/pages/traficoUCI/components/TraficoUCI.tsx
 import { useState } from "react";
-import { Box, Typography, Paper, List, ListItem, ListItemText, Button } from "@mui/material";
+import { Box, Typography, Paper, List, ListItem, ListItemText} from "@mui/material";
 import { invoke } from "@tauri-apps/api/core";
 import type { LogEntry } from "../useMockRecibido";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -12,15 +12,22 @@ interface Props {
   recibidos: LogEntry[];
 }
 
-export default function TraficoUCI({ enviados, recibidos }: Props) {
+export default function TraficoUCI({recibidos, enviados }: Props) {
   const [selectedEnviado, setSelectedEnviado] = useState<number | null>(null);
   const [selectedRecibido, setSelectedRecibido] = useState<number | null>(null);
 
 
   async function handleDownload() {
     try {
+      const now = new Date();
+      const timestamp = now
+        .toISOString() 
+        .replace(/[:.]/g, "-");
+
+      const defaultFileName = `serialLog_received_${timestamp}.txt`;
+
       const filePath = await save({
-        defaultPath: "serial_log.txt",
+        defaultPath: defaultFileName,
         filters: [{ name: "Text", extensions: ["txt"] }],
       });
 
@@ -34,6 +41,30 @@ export default function TraficoUCI({ enviados, recibidos }: Props) {
     } catch (error) {
       console.error("Error exportando log:", error);
       alert("Error exportando log.");
+    }
+  }
+
+  async function handleDownloadEnviados() {
+    try {
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, "-");
+      const defaultFileName = `serialLog_sent_${timestamp}.txt`;
+
+      const filePath = await save({
+        defaultPath: defaultFileName,
+        filters: [{ name: "Text", extensions: ["txt"] }],
+      });
+
+      if (!filePath) {
+        alert("No se seleccionó archivo.");
+        return;
+      }
+
+      await invoke("export_buffer", { path: filePath });
+      alert("Log de enviados exportado correctamente.");
+    } catch (error) {
+      console.error("Error exportando log de enviados:", error);
+      alert("Error exportando log de enviados.");
     }
   }
 
@@ -68,7 +99,7 @@ export default function TraficoUCI({ enviados, recibidos }: Props) {
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", backgroundColor: "#1976d2" }}>
           <Typography variant="h6" sx={{ color: "white" }}>Mensajes enviados a UCI</Typography>
-           <IconButton size="small" onClick={handleDownload} sx={{ color: "white" }}>
+           <IconButton size="small" onClick={handleDownloadEnviados} sx={{ color: "white" }}>
             <FileDownloadIcon />
           </IconButton>
         </Box>

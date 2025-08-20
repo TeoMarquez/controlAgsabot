@@ -13,6 +13,7 @@ use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
 use commands::controlUsb::controlar_Usb::{configurar_puerto,desconectar_puerto, obtener_estado_serial,listar_puertos};
 use commands::state_Control::stateControl::{set_modo};
 use commands::trayectorias::trajectory_handle::{set_point,enqueue_trayectoria};
+use serial::handler::{export_buffer};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
@@ -23,6 +24,7 @@ use crate::commands::trayectorias::trajectory_handle::TrayectoriaQueue;
 use crate::worker_Trajectory::worker_thread::start_trayectoria_worker;
 use crate::logs::log_sending::{start_logger_thread, LogCommand, export_log,};
 use crate::logs::log_sending::LogEntry;
+
 
 use std::sync::{Arc, Mutex};
 
@@ -44,6 +46,7 @@ fn main() {
             set_point,
             enqueue_trayectoria,
             export_log,
+            export_buffer,
         ])
         .setup(|app| {
             let app_handle = app.handle();
@@ -59,18 +62,20 @@ fn main() {
              let trayectoria_queue = Arc::new(TrayectoriaQueue {
                 puntos: Mutex::new(Vec::new()),
             });
-            let serial_handler = Arc::new(SerialHandler::new(shared_state.clone(), app_handle.clone()));
 
-             // Thread de logging
-            let logger_sender = start_logger_thread();
+            let logger_sender = start_logger_thread();              // logger de lectura
 
-            // Suscribirse al evento 'serial-parser'
-            let sender_clone = logger_sender.clone();
+            let serial_handler = Arc::new(SerialHandler::new(
+                shared_state.clone(),
+                app_handle.clone(),
+            ));
+
+            let logger_clone = logger_sender.clone();
             app_handle.listen("serial-raw", move |event| {
-            let payload = event.payload();
-            if !payload.is_empty() { // opcional, por si quieres ignorar payloads vacíos
+                let payload = event.payload();
+                if !payload.is_empty() {
                     let timestamp = chrono::Local::now().format("%H:%M:%S%.3f").to_string();
-                    let _ = sender_clone.send(LogCommand::NewMessage(LogEntry {
+                    let _ = logger_clone.send(LogCommand::NewMessage(LogEntry {
                         timestamp,
                         message: payload.to_string(),
                     }));

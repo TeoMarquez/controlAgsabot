@@ -18,7 +18,7 @@ const nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 const generarJuntasVacias = (): Junta[] =>
   nombres.map((nombre) => ({
     nombre,
-    grados: "-",
+    grados: "\n-",
     potenciometro: "-",
   }));
 

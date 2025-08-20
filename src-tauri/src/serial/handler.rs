@@ -11,13 +11,13 @@ use std::{
 };
 
 use tauri::{AppHandle, Manager, Emitter};
+use crate::{LogCommand, LogEntry};
 
-// Estado compartido simple con lo mínimo necesario para controlar serial y modo
 pub struct SerialSharedState {
     pub puerto_liberado: Mutex<bool>,
-    pub puerto: Mutex<String>,     // Ejemplo: "COM6" o "/dev/ttyUSB0"
-    pub velocidad: Mutex<u32>,     // Ejemplo: 9600
-    pub modo: Mutex<String>,       // Ejemplo: "S", "M"
+    pub puerto: Mutex<String>,    
+    pub velocidad: Mutex<u32>,    
+    pub modo: Mutex<String>,      
 }
 
 impl SerialSharedState {
@@ -37,10 +37,14 @@ pub struct SerialHandler {
     shared_state: Arc<SerialSharedState>,
     app_handle: AppHandle,
     ultimo_modo_enviado: Mutex<String>,
+    buffer_enviados: Mutex<Vec<String>>, // <-- nuevo
 }
 
 impl SerialHandler {
-    pub fn new(shared_state: Arc<SerialSharedState>, app_handle: AppHandle) -> Self {
+    pub fn new(
+        shared_state: Arc<SerialSharedState>, 
+        app_handle: AppHandle,
+    ) -> Self {
         let (write_tx, write_rx) = mpsc::channel();
 
         let handler = SerialHandler {
@@ -48,6 +52,7 @@ impl SerialHandler {
             _worker_handle: None,
             shared_state: shared_state.clone(),
             app_handle: app_handle.clone(),
+            buffer_enviados: Mutex::new(Vec::new()), // <-- nuevo
             ultimo_modo_enviado: Mutex::new(String::new()),
         };
 
@@ -63,15 +68,12 @@ impl SerialHandler {
 
     pub fn escribir(&self, comando: String) -> Result<(), String> {
         let modo_actual = self.shared_state.modo.lock().unwrap().clone();
-
         let mut ultimo_modo_guard = self.ultimo_modo_enviado.lock().unwrap();
 
-        // Permitir comandos T aunque estemos en stop
         if modo_actual == "S" && comando != "M" && comando != "S" && !comando.starts_with('T') {
             return Err("Modo stop activo: no se envían comandos excepto cambio de modo".into());
         }
 
-        // Evitar enviar repetidamente M o S
         if (comando == "M" || comando == "S") && comando == *ultimo_modo_guard {
             return Err("Comando de modo repetido, no se envía".into());
         }
@@ -82,7 +84,6 @@ impl SerialHandler {
                 format!("{};", comando)
             }
             _ => {
-                // Validar comando T
                 if comando.starts_with('T') {
                     let partes: Vec<&str> = comando.split(',').collect();
                     if partes.len() == 6 && partes[0] == "T" {
@@ -111,10 +112,17 @@ impl SerialHandler {
                 }
             }
         };
+ 
+        {
+            let mut buf = self.buffer_enviados.lock().unwrap();
+            buf.push(comando_prefijado.clone());
+        }
 
         self.write_tx
-            .send(comando_prefijado)
-            .map_err(|e| format!("Error enviando comando: {}", e))
+            .send(comando_prefijado.clone())
+            .map_err(|e| format!("Error enviando comando: {}", e))?;
+
+        Ok(())
     }
 
 
@@ -122,7 +130,8 @@ impl SerialHandler {
     shared_state: Arc<SerialSharedState>,
     write_rx: Receiver<String>,
     app_handle: AppHandle,
-) {
+                        ) 
+    {
     let mut port: Option<Box<dyn serialport::SerialPort>> = None;
     let mut buffer: Vec<u8> = vec![0; 1024];
     let mut acumulador = String::new();
@@ -130,7 +139,7 @@ impl SerialHandler {
     let nombres = ["Cintura", "Hombro", "Codo", "Muñeca", "Pinza"];
 
     loop {
-        let modo = shared_state.modo.lock().unwrap().clone();
+        let _modo = shared_state.modo.lock().unwrap().clone();
         let puerto_liberado = *shared_state.puerto_liberado.lock().unwrap();
         let puerto = shared_state.puerto.lock().unwrap().clone();
         let velocidad = *shared_state.velocidad.lock().unwrap();
@@ -232,6 +241,9 @@ impl SerialHandler {
                         continue;
                     } else {
                         println!("Comando enviado: {}", comando);
+                        if let Err(e) = app_handle.emit("serial-sent", comando.clone()) {
+                            eprintln!("Error emitiendo serial-sent: {}", e);
+                        }
                     }
                 }
                 Err(TryRecvError::Empty) => {}
@@ -245,4 +257,11 @@ impl SerialHandler {
             }
         }
     }
+}
+
+#[tauri::command]
+pub fn export_buffer(handler: tauri::State<Arc<SerialHandler>>, path: String) -> Result<String, String> {
+    let buf = handler.buffer_enviados.lock().unwrap();
+    std::fs::write(&path, buf.join("\n")).map_err(|e| e.to_string())?;
+    Ok("Exportación completada".into())
 }

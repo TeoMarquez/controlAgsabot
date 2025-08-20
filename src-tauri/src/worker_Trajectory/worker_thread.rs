@@ -1,7 +1,7 @@
 use crate::serial::handler::SerialHandler;
 use crate::commands::trayectorias::trajectory_handle::TrayectoriaQueue;
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc},
     thread,
     time::Duration,
 };

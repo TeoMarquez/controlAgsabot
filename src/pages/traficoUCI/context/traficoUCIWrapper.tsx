@@ -1,8 +1,9 @@
 import TraficoUCI from "./components/TraficoUCI";
-import { mensajesEnviados } from "./mockEnviados";
+import { useEnviados } from "../context/mockEnviados";
 import { useMockRecibidos } from "./useMockRecibido";
 
 export default function TraficoUCIWrapper() {
   const recibidos = useMockRecibidos();
-  return <TraficoUCI enviados={mensajesEnviados} recibidos={recibidos} />;
+  const enviados = useEnviados();
+  return <TraficoUCI enviados={enviados} recibidos={recibidos} />;
 }
