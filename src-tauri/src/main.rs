@@ -5,19 +5,22 @@
 
 mod serial;
 mod commands;
+mod worker_Trajectory;
 
 use commands::filesControl::writeFile::{save_trajectory, load_trajectory};
 use commands::windowsManager::trafficWindow::{abrir_ventana, ocultar_ventana};
 use commands::controlUsb::controlar_Usb::{configurar_puerto,desconectar_puerto, obtener_estado_serial};
 use commands::state_Control::stateControl::{set_modo};
-use commands::trayectorias::trajectory_handle::{set_point};
+use commands::trayectorias::trajectory_handle::{set_point,enqueue_trayectoria};
 
 use tauri::{Manager, WindowEvent};
 use tauri::Emitter;
 
 use crate::serial::handler::{SerialSharedState, SerialHandler};
-use std::sync::{Arc, Mutex};
+use crate::commands::trayectorias::trajectory_handle::TrayectoriaQueue;
+use crate::worker_Trajectory::worker_thread::start_trayectoria_worker;
 
+use std::sync::{Arc, Mutex};
 
 fn main() {
     tauri::Builder::default()
@@ -34,6 +37,7 @@ fn main() {
             obtener_estado_serial,
             set_modo,
             set_point,
+            enqueue_trayectoria,
 
         ])
         .setup(|app| {
@@ -47,13 +51,19 @@ fn main() {
                 modo: Mutex::new("S".to_string()),
             });
 
+             let trayectoria_queue = Arc::new(TrayectoriaQueue {
+                puntos: Mutex::new(Vec::new()),
+            });
             // Crear el handler serial, pasando el estado y app_handle
             let serial_handler = Arc::new(SerialHandler::new(shared_state.clone(), app_handle.clone()));
 
             // Registrar en el estado global de Tauri para poder inyectarlo en comandos
             app.manage(shared_state);
-            app.manage(serial_handler);
+            app.manage(serial_handler.clone());
+            app.manage(trayectoria_queue.clone());
 
+            // Iniciar worker de trayectoria
+            start_trayectoria_worker(serial_handler.clone(), trayectoria_queue.clone());
 
             // Ventanas secundarias: ocultar en vez de cerrar + emitir evento cuando se oculta
             for label in &[

@@ -1,6 +1,10 @@
 use crate::serial::handler::SerialHandler;
-use std::sync::Arc;
-use tauri::command;
+use std::sync::{Arc, Mutex};
+use tauri::{command};
+
+pub struct TrayectoriaQueue {
+    pub puntos: Mutex<Vec<String>>,
+}
 
 /// Command para enviar un punto como "set" a la URC
 #[command]
@@ -12,4 +16,19 @@ pub fn set_point(punto: String, serial: tauri::State<Arc<SerialHandler>>) -> Str
         Ok(_) => "OK: Set recibido".to_string(),
         Err(e) => format!("Error enviando set: {}", e),
     }
+}
+
+#[command]
+pub fn enqueue_trayectoria(
+    puntos: Vec<String>,
+    state: tauri::State<'_, Arc<TrayectoriaQueue>>,) -> Result<String, String> {
+    let mut queue = state.puntos.lock().map_err(|_| "Error bloqueando mutex".to_string())?;
+    
+    // Limpiar la cola actual y encolar los nuevos puntos
+    queue.clear();
+    queue.extend(puntos);
+
+    println!("Trayectoria encolada, {} puntos pendientes.", queue.len());
+
+    Ok(format!("Trayectoria encolada con {} puntos.", queue.len()))
 }

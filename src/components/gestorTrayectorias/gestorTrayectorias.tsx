@@ -360,6 +360,44 @@ export const GestorTrayectorias = () => {
     setSeleccionado(trayectoria.puntos.length); 
   };
 
+  const handleEjecutarTrayectoria = async () => {
+    try {
+      if (modo !== "trayectoria") {
+          toast.warning("No estás en modo trayectoria. Cambiá de modo para ejecutar.", {
+            style: {
+              color: "#5a5555ff",       // negro
+              background: "#f7d61aff",  // dorado de fondo, por ejemplo
+              fontWeight: "bold",
+            },
+          });
+        return;
+      }
+
+      if (trayectoria.puntos.length === 0) {
+        toast.error("La trayectoria está vacía.");
+        return;
+      }
+
+      const startIndex = seleccionado ?? 0; // si hay seleccionado, empezamos desde ahí
+      const puntosAEnviar = trayectoria.puntos.slice(startIndex);
+
+      const comandos = puntosAEnviar.map(punto => {
+      const grados = punto.juntas.map(j => j.grados.trim()).join(",");
+        return `T,${grados}`;
+      });
+
+      console.log("Trayectoria a enviar al backend:", comandos);
+
+      const respuesta = await invoke("enqueue_trayectoria", { puntos: comandos });
+        console.log("Respuesta backend:", respuesta);
+        toast.success("Ejecución de trayectoria iniciada.");
+      } catch (error) {
+        console.error("Error ejecutando trayectoria:", error);
+        toast.error("Error al ejecutar la trayectoria.");
+      }
+  };
+
+
   return (
     <div className="gestor-container" onClick={handleClickOutside}>
       <div style={{ marginBottom: "1rem" }}>
@@ -430,7 +468,7 @@ export const GestorTrayectorias = () => {
         <button onClick={() => void handleNuevaTrayectoria()}>
           Nueva Trayectoria
         </button>
-        <button disabled title="Funcionalidad en desarrollo">
+        <button onClick={handleEjecutarTrayectoria} title="Ejecutar Trayectoria">
           Ejecutar Trayectoria
         </button>
         <button onClick={handleAñadirPunto} title="Añadir Punto">
