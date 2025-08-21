@@ -1,6 +1,6 @@
 # AGSA-BOT Control Desktop App
 
-> Control profesional de brazo robótico AGSA-BOT con interfaz 3D, monitoreo en tiempo real y gestión de trayectorias.
+> Control de brazo robótico AGSA-BOT con interfaz 3D, monitoreo en tiempo real y gestión de trayectorias.
 
 ---
 
@@ -32,17 +32,28 @@ La app permite:
 ---
 
 
-## 🛠 Descripción
+## 🛠 Funciónes
 
 1. Seleccioná el puerto USB y el baudrate.
 2. Conectá el brazo robótico.
 3. Monitoreá juntas y potenciómetros en tiempo real.
 4. Agregá puntos de trayectoria y ejecutá movimientos.
 5. Exportá logs de comandos enviados para análisis.
+6. Perzonaliza tus trayectorias con el sistema drag and drop y guardalas en json
 
 ---
 
 ## 🚀 Instalación
+
+[Descargar AGSA-BOT 0.1.0 para Windows (.exe)](https://drive.google.com/file/d/1LQOq12TTluvOw8Jo2wnUkJ2oB2K1xXHq/view?usp=sharing)
+
+## 🛠 Desarrollo
+
+Antes de clonar el repositorio, asegurate de tener instalados:
+
+- [Rust (incluye cargo)](https://www.rust-lang.org/tools/install)
+- [Node.js y npm](https://nodejs.org/)
+
 
 1. Clonar el repositorio:
 
