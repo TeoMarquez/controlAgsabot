@@ -32,20 +32,36 @@ La app permite:
 ---
 
 
-## 🛠 Funciónes
+## 🛠 Funciones
 
 1. Seleccioná el puerto USB y el baudrate.
 2. Conectá el brazo robótico.
 3. Monitoreá juntas y potenciómetros en tiempo real.
 4. Agregá puntos de trayectoria y ejecutá movimientos.
 5. Exportá logs de comandos enviados para análisis.
-6. Perzonaliza tus trayectorias con el sistema drag and drop y guardalas en json
+6. Perzonalizá tus trayectorias con el sistema drag and drop y guardalas en JSON
 
 ---
 
 ## 🚀 Instalación
 
-[Descargar AGSA-BOT 0.1.0 para Windows (.exe)](https://drive.google.com/file/d/1LQOq12TTluvOw8Jo2wnUkJ2oB2K1xXHq/view?usp=sharing)
+### Windows
+[Descargar AGSA-BOT 0.1.0 (.exe)](https://drive.google.com/file/d/1LQOq12TTluvOw8Jo2wnUkJ2oB2K1xXHq/view?usp=sharing)
+
+### Linux
+
+- **Debian / Ubuntu 64-bit** (.deb)  
+[Descargar AGSA-BOT 0.1.0 amd64](https://drive.google.com/file/d/1OtzkAO70l52YoNRL0lHUkKZOdytXQr9q/view?usp=sharing)
+
+- **Fedora / RHEL 64-bit** (.rpm)  
+[Descargar AGSA-BOT 0.1.0 x86_64](https://drive.google.com/file/d/1HXcOL18T77HWEMoAGFjITHQi4wfDhMyf/view?usp=sharing)
+
+
+> [!IMPORTANT]  
+> 🔹 Si usás **Ubuntu/Debian**, antes de compilar asegurate de instalar las siguientes dependencias del sistema:  
+> ```bash
+> sudo apt install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+> ```
 
 ## 🛠 Desarrollo
 
