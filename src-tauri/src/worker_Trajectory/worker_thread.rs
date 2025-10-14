@@ -32,10 +32,7 @@ pub fn start_trayectoria_worker(
                     continue;
                 }
             }
-
-            // 🔑 Esperar confirmación del monitor
-            // Por ahora hacemos un sleep como mock, luego se puede reemplazar con check real
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(1200));
 
         } else {
             // No hay puntos pendientes, esperar un poco antes de revisar de nuevo

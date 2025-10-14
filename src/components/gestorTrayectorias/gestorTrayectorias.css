@@ -9,7 +9,7 @@
 /* Lista de puntos */
 .lista-trayectorias {
   width: 500px;
-  max-height: 400px;
+  max-height: 250px;
   overflow-y: auto;
   border: 1px solid #ccc;
   border-radius: 6px;
