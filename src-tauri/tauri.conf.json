@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "controlaggsabot",
-  "version": "0.1.0",
-  "identifier": "com.controlaggsabot.app",
+  "productName": "controlagsabot",
+  "version": "0.1.1",
+  "identifier": "com.controlagsabot.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,10 +13,10 @@
     "windows": [
       {
         "label": "main",
-        "title": "controlAGGSABOT",
-        "width": 1200,
-        "height": 800,
-        "resizable": false,
+        "title": "controlAGSABOT",
+        "width": 1000,
+        "height": 700,
+        "resizable": true,
         "center": true,
         "fullscreen": false
       },
