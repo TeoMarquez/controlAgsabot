@@ -56,6 +56,8 @@ La app permite:
 - **Fedora / RHEL 64-bit** (.rpm)  
 [Descargar AGSA-BOT 0.1.0 x86_64](https://drive.google.com/file/d/1HXcOL18T77HWEMoAGFjITHQi4wfDhMyf/view?usp=sharing)
 
+- **Ubuntu ejecutable**  
+[Descargar AGSA-BOT 0.1.1 Ejecutable](https://drive.google.com/file/d/1I_BzAh6fzEU33-FBzZbldwmzjtgCK3yP/view?usp=sharing)
 
 > [!IMPORTANT]  
 > 🔹 Si usás **Ubuntu/Debian**, antes de compilar asegurate de instalar las siguientes dependencias del sistema:  
